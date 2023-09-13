@@ -17,6 +17,7 @@ FROM debian:buster-slim as ndc-deno
 WORKDIR /app
 COPY --from=build /app/target/release/ndc-typescript-deno ./ndc-typescript-deno
 COPY ./entrypoint.sh ./entrypoint.sh
+COPY ./functions /functions 
 COPY ./src ./src
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive \
