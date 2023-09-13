@@ -5,6 +5,8 @@ The Typescript (Deno) Connector allows a running connector to be inferred from a
 * Hub Link TODO
 * Docs Link TODO
 
+TODO: Screenshot of TS file and GQL API side by side.
+
 ## Overview
 
 The connector runs in the following manner:
