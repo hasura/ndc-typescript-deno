@@ -27,10 +27,10 @@ You will need:
 
 Create the connector:
 
-> hasura3 connector create my-cool-connector:v1 \
-> --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \
-> --volume ./my-config.json:/config.json \
-> --volume ./functions:/functions \
+> hasura3 connector create my-cool-connector:v1 \\
+> --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \\
+> --volume ./my-config.json:/config.json \\
+> --volume ./functions:/functions \\
 > --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
 
 Monitor the deployment status by name:
