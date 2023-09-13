@@ -11,9 +11,9 @@ cp "$typescript_source" "$typescript_directory"/funcs.ts
 
 (
   cd "$typescript_directory"
-  $HOME/.deno/bin/deno vendor funcs.ts
-  $HOME/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts > /schema.json
-  $HOME/.deno/bin/deno run --allow-env --allow-net server.ts & # Server
+  /root/.deno/bin/deno vendor funcs.ts
+  /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts > /schema.json
+  /root/.deno/bin/deno run --allow-env --allow-net server.ts & # Server
 )
 
 "$@"
