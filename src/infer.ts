@@ -45,20 +45,25 @@ function programInfo(filename: string) {
 
   // https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
   if (diagnostics.length) {
+    let fail = false;
     console.error(`There were ${diagnostics.length} diagnostic errors.`);
     diagnostics.forEach(diagnostic => {
       if (diagnostic.file) {
+        if (! /^vendor\//.test(diagnostic.file.fileName)) {
+          fail = true;
+        }
         let { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
         let message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-        console.log(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
+        console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
       } else {
-        console.log(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+        console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+        fail = true;
       }
     });
 
-    // console.error(JSON.stringify(diagnostics.map(d => d.messageText), null, 2));
-    // console.log(diagnostics);
-    Deno.exit(1); // TODO: Decide what diagnostics we should terminate on.
+    if(fail) {
+      Deno.exit(1);
+    }
   }
 
   let checker = program.getTypeChecker();
