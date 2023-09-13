@@ -63,7 +63,7 @@ function programInfo(filename: string) {
     object_types: {},
     collections: [],
     functions: [] as any[],
-    procedures: [],
+    procedures: [] as any[],
   };
 
   let validate_type = (name: string, ty: Type): { type: string, name: string } => {
@@ -119,10 +119,12 @@ function programInfo(filename: string) {
 
     ts.forEachChild(src, (node) => {
       if (ts.isFunctionDeclaration(node)) {
-        const fn_sym = checker.getSymbolAtLocation(node.name!);
-        const fn_name = fn_sym!.escapedName;
-        const fn_type = checker.getTypeOfSymbolAtLocation(fn_sym!, fn_sym!.valueDeclaration!);
-        const fn_desc = ts.displayPartsToString(fn_sym!.getDocumentationComment(checker));
+        const fn_sym = checker.getSymbolAtLocation(node.name!)!;
+        const fn_name = fn_sym.escapedName;
+        const fn_type = checker.getTypeOfSymbolAtLocation(fn_sym, fn_sym.valueDeclaration!);
+        const fn_desc = ts.displayPartsToString(fn_sym.getDocumentationComment(checker));
+        const fn_tags = fn_sym.getJsDocTags();
+        const fn_pure = !!(fn_tags.find((e) => e.name == 'pure'));
 
         const call = fn_type.getCallSignatures()[0]!;
         const result_type = call.getReturnType();
@@ -150,7 +152,11 @@ function programInfo(filename: string) {
           }
         });
 
-        schema_response.functions.push(fn);
+        if(fn_pure) {
+          schema_response.functions.push(fn);
+        } else {
+          schema_response.procedures.push(fn);
+        }
       }
     });
 
