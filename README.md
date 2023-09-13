@@ -69,6 +69,12 @@ export function make_object_array(): Array<MyObjectType> {
 Top level exported function definitions with `pure` tag will be made available as functions,
 and others as procedures, which will become queries and mutations respectively.
 
+Return types should be inferred.
+
+Parameters should be inferred and named after their input parameter names.
+
+Simple scalar, array, and object types should be supported.
+
 
 ## Deployment for Hasura Users
 
@@ -77,12 +83,21 @@ You will need:
 * [V3 CLI](https://github.com/hasura/v3-cli) (With Logged in Session)
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * Secret service token
+* A configuration file
+
+The configuration file format needs at a minimum
+a `typescript_source` referenced which matches the main
+typescript file as mounted with the `--volume` flag.
+
+```
+{"typescript_source": "/functions/main.ts"}
+```
 
 Create the connector:
 
 > hasura3 connector create my-cool-connector:v1 \\
 > --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \\
-> --volume ./my-config.json:/config.json \\
+> --config-file config.json \\
 > --volume ./functions:/functions \\
 > --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
 
@@ -100,4 +115,8 @@ my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
 
 ## Usage
 
+TODO: Adding to metadata and deploying project with hasura3
+
 ## Development
+
+TODO: Rust SDK, Docker, Etc.
