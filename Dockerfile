@@ -16,6 +16,8 @@ RUN cargo build --release --all-targets
 FROM debian:buster-slim as ndc-deno
 WORKDIR /app
 COPY --from=build /app/target/release/ndc-typescript-deno ./ndc-typescript-deno
+COPY ./entrypoint.sh ./entrypoint.sh
+COPY ./src ./src
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
@@ -23,4 +25,4 @@ RUN apt-get update \
 RUN curl -fsSL https://deno.land/x/install/install.sh | sh
 
 ENTRYPOINT [ "./entrypoint.sh", "./ndc-typescript-deno"]
-CMD ["serve", "--configuration", "/config.json", "--port", "8080"]
+CMD ["serve", "--configuration", "/functions/config.json", "--port", "8080"]
