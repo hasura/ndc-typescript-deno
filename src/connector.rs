@@ -127,10 +127,10 @@ impl connector::Connector for TypescriptConnector {
     ) -> Result<Self::Configuration, connector::ValidateError> {
 
         // Why so many clones?
-        let schema_location = configuration.schema_location.clone().unwrap_or("functions.ts.schema.json".to_string());
+        let schema_location = configuration.schema_location.clone().unwrap_or("/schema.json".to_string());
         let schema_and_function_arguments = 
             read_schema(schema_location.clone())
-                .map_err(|err| mk_single_validate_error("functions.ts.schema.json", &format!("Couldn't read schema from {}: {}", schema_location.clone(), err)))?;
+                .map_err(|err| mk_single_validate_error("/schema.json", &format!("Couldn't read schema from {}: {}", schema_location.clone(), err)))?;
 
         let schema = schema_and_function_arguments.0;
         let function_argument_positions = schema_and_function_arguments.1;
