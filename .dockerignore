@@ -1,4 +1,3 @@
 target
 Dockerfile
-configuration.cc.json
 .dockerignore

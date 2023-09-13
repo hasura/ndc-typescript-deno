@@ -2,7 +2,7 @@
 
 echo "$@"
 
-typescript_source=$(jq -r .typescript_source < /functions/config.json)
+typescript_source=$(jq -r .typescript_source < /config.json)
 typescript_directory=$(dirname "$typescript_source")
 
 cp src/server.ts "$typescript_directory"

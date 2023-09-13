@@ -25,4 +25,4 @@ RUN apt-get update \
 RUN curl -fsSL https://deno.land/x/install/install.sh | sh
 
 ENTRYPOINT [ "./entrypoint.sh", "./ndc-typescript-deno"]
-CMD ["serve", "--configuration", "/functions/config.json", "--port", "8080"]
+CMD ["serve", "--configuration", "/config.json", "--port", "8080"]
