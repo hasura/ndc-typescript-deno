@@ -17,15 +17,14 @@ function programInfo(filename: string) {
 
   const importString = Deno.readTextFileSync('./vendor/import_map.json');
   const vendorMap = JSON.parse(importString);
-  const pathsMap = mapObject(vendorMap.imports, (k, v) => [k.replace(/$/,'*'), [ v.replace(/./, './vendor').replace(/$/, '*') ]]);
+  const pathsMap = mapObject(vendorMap.imports, (k, v) => {
+    if(/\.ts$/.test(k)) {
+      return [k, [ v.replace(/./, './vendor') ]];
+    } else {
+      return [k.replace(/$/,'*'), [ v.replace(/./, './vendor').replace(/$/, '*') ]];
+    }
+  });
 
-  // console.debug(pathsMap);
-
-  // TODO: Use getTypescriptFiles?
-  // TODO: Use "paths" CompilerOptions field to transform import_map into paths for lookups
-  // https://stackoverflow.com/questions/54927942/createprogram-does-not-respect-compileroptions-paths
-  // https://github.com/zerkalica/zerollup/tree/master/packages/ts-transform-paths
-  // ~/Code/Typescript/src/compiler/moduleNameResolver.ts
   let program = ts.createProgram([filename], {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
@@ -44,9 +43,21 @@ function programInfo(filename: string) {
 
   // console.debug(diagnostics);
 
+  // https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
   if (diagnostics.length) {
     console.error(`There were ${diagnostics.length} diagnostic errors.`);
-    console.error(JSON.stringify(diagnostics.map(d => d.messageText), null, 2));
+    diagnostics.forEach(diagnostic => {
+      if (diagnostic.file) {
+        let { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
+        let message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+        console.log(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
+      } else {
+        console.log(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+      }
+    });
+
+    // console.error(JSON.stringify(diagnostics.map(d => d.messageText), null, 2));
+    // console.log(diagnostics);
     Deno.exit(1); // TODO: Decide what diagnostics we should terminate on.
   }
 
