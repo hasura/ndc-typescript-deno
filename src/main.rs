@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use ndc_deno::connector;
+use ndc_typescript_deno::connector;
 use ndc_hub::default_main::default_main;
 
 #[tokio::main]
