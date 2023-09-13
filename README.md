@@ -1,7 +1,6 @@
 # ndc-typescript-deno
 
-![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/e517fed4-9db5-42b4-a6d0-b7e23ceb321f)
-
+![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/e61e6dc5-cd92-46df-a5e3-b328cf67b6ab)
 
 The Typescript (Deno) Connector allows a running connector to be inferred from a Typescript file (optionally with dependencies).
 
