@@ -1,5 +1,4 @@
 target
 Dockerfile
 configuration.cc.json
-entrypoint.sh
 .dockerignore
