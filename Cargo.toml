@@ -10,7 +10,7 @@ name = "ndc-typescript-deno"
 path = "src/lib.rs"
 
 [dependencies]
-ndc-client = { git = "https://github.com/hasura/ndc-spec.git", rev = "fde4c88" } # or can use tag
+ndc-client = { git = "https://github.com/hasura/ndc-spec.git", tag = "v0.1.0-rc.4" }
 ndc-hub = { git = "https://github.com/hasura/ndc-hub.git", rev = "e3f6ef5", package = "ndc-sdk" }
 
 async-trait = "0.1.68"
