@@ -1,6 +1,14 @@
 import ts from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 
+type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
+
+type Type = any;
+
+declare global {
+  var Deno: any;
+}
+
 function is_struct(ty: Type): Boolean {
   return (ty?.members?.size || 0) > 0;
 }
@@ -82,9 +90,17 @@ function programInfo(filename: string) {
     procedures: [] as any[],
   };
 
-  let validate_type = (name: string, ty: Type): { type: string, name: string } => {
+  const scalar_mappings = {
+    "string": "String",
+    "bool": "Boolean",
+    "boolean": "Boolean",
+    "number": "Float",
+  };
+
+  let validate_type = (name: string, ty: Type): ValidateTypeResult => {
     const type_str = checker.typeToString(ty);
     const type_name = ty.symbol?.escapedName || ty.intrinsicName;
+    const type_name_lower = type_name.toLowerCase();
 
     // PROMISE -- TODO: Don't recur on inner promises.
     if (type_name == "Promise") {
@@ -102,9 +118,10 @@ function programInfo(filename: string) {
     }
 
     // SCALAR
-    else if (type_name == 'string' || type_name == 'String' || type_name == 'Number' || type_name == 'number' || type_name == 'boolean') {
-      schema_response.scalar_types[type_name] = no_ops;
-      return { type: 'named', name: type_name };
+    else if (scalar_mappings[type_name_lower]) {
+      const type_name_gql = scalar_mappings[type_name_lower];
+      schema_response.scalar_types[type_name_gql] = no_ops;
+      return { type: 'named', name: type_name_gql };
     }
 
     // OBJECT
@@ -127,6 +144,8 @@ function programInfo(filename: string) {
       console.error(`Unable to validate type of ${name}: ${type_str}.`);
       Deno.exit(1); // Proceed
     }
+
+    return { type: 'named', name: 'IMPOSSIBLE'}; // Satisfy TS Checker.
   }
 
   for (let src of program.getSourceFiles()) {
