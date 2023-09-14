@@ -35,12 +35,16 @@ function programInfo(filename: string) {
     }
   });
 
+  const pathname = new URL('', import.meta.url).pathname;
+  const dirname = pathname.replace(/\/[^\/]*$/,'');
+  const deno_lib_path = resolve(`${dirname}/deno.d.ts`); // Assumes that deno.d.ts and infer.ts will be co-located.
+
   let program = ts.createProgram([filename], {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
     // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
-    lib: ['lib.d.ts', 'lib.es2017.d.ts', resolve('./deno.d.ts')],
+    lib: ['lib.d.ts', 'lib.es2017.d.ts', deno_lib_path],
     allowJs: true,
     allowImportingTsExtensions: true,
     noEmit: true,
