@@ -39,8 +39,8 @@ function programInfo(filename: string) {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
-    // lib: ['lib.d.ts', 'lib.es2015.d.ts'],
-    lib: ['lib.d.ts', 'lib.es2017.d.ts'],
+    // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
+    lib: ['lib.d.ts', 'lib.es2017.d.ts', resolve('./deno.d.ts')],
     allowJs: true,
     allowImportingTsExtensions: true,
     noEmit: true,
