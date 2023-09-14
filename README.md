@@ -16,7 +16,7 @@ The connector runs in the following manner:
 * The typescript sources are assembled
 * Dependencies are fetched into a vendor directory
 * Inference is performed and output to schema.json
-* The functions are served via HTTP locally in the background
+* The functions are served via HTTP locally in the background with the Deno runtime
 * The connector is started in the foreground responding to requests
 
 It assumes that dependencies are specified in accordance with [Deno](https://deno.com) conventions.
@@ -76,6 +76,12 @@ Return types should be inferred.
 Parameters should be inferred and named after their input parameter names.
 
 Simple scalar, array, and object types should be supported.
+
+Limitations:
+
+* Functions can be sync, or async, but `Promise`'s can't be nested
+* All numbers are exported as `Float`s
+* Union types are not supported
 
 
 ## Deployment for Hasura Users

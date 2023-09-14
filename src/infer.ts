@@ -105,6 +105,12 @@ function programInfo(filename: string) {
 
   let validate_type = (name: string, ty: Type): ValidateTypeResult => {
     const type_str = checker.typeToString(ty);
+
+    if(/\|/.test(type_str)) {
+      console.error(`Unsupported type: ${type_str}`);
+      Deno.exit(1);
+    }
+
     const type_name = ty.symbol?.escapedName || ty.intrinsicName;
     const type_name_lower = type_name.toLowerCase();
 
