@@ -1,6 +1,8 @@
 import ts from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 
+// TODO: Resolve deno check type errors.
+
 type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
 
 type Type = any;
