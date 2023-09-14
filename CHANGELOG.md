@@ -12,6 +12,7 @@ Changes to be included in the next upcoming releaase.
 * Starting use of a `CHANGELOG.md` file
 * `Deno` is now defined. Users no longer need to defined this value in their functions.
 * Inference errors now exit and print in `entrypoint.sh`
+* Supports `SERVICE_TOKEN_SECRET`
 
 
 ## v0.1
