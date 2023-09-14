@@ -9,6 +9,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.2
+
+Update to SDK.
+
 * Starting use of a `CHANGELOG.md` file
 * `Deno` is now defined. Users no longer need to defined this value in their functions.
 * Inference errors now exit and print in `entrypoint.sh`
