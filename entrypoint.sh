@@ -28,7 +28,7 @@ else
   exit 1
 fi
 
-/root/.deno/bin/deno run --allow-env --allow-net --allow-env server.ts > /deno_run.log 2>&1 & # Server
+/root/.deno/bin/deno run --allow-env --allow-net server.ts > /deno_run.log 2>&1 & # Server
 
 if ! popd
 then
