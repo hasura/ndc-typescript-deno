@@ -286,6 +286,7 @@ async fn handle(
         function_name,
         args,
     };
+
     let http_response = state
         .http_client
         .post(configuration.deno_deployment_url.clone())
@@ -294,39 +295,33 @@ async fn handle(
         .await
         .map_err(|err| QueryError::Other(Box::new(err)))?;
 
-    let response = http_response
-        .json::<serde_json::Value>()
-        .await
-        .map_err(|err| QueryError::Other(Box::new(err)))?;
 
-    let rows: Vec<IndexMap<String, RowFieldValue>> =
-        vec![IndexMap::from_iter([(
-            "__value".into(),
-            RowFieldValue(response)
-        )])];
-        // match response {
-        //     serde_json::Value::Array(arr) => arr
-        //         .into_iter()
-        //         .map(|v| match v {
-        //             serde_json::Value::Object(obj) => {
-        //                 IndexMap::from_iter(obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))))
-        //             }
-        //             _ => IndexMap::from_iter([("__value".into(), RowFieldValue(v))]),
-        //         })
-        //         .collect(),
-        //     serde_json::Value::Object(obj) => vec![IndexMap::from_iter(
-        //         obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
-        //     )],
-        //     _ => vec![IndexMap::from_iter([(
-        //         "__value".into(),
-        //         RowFieldValue(response),
-        //     )])],
-        // };
+    if http_response.status().is_success() {
+        let response = http_response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|err| QueryError::Other(Box::new(err)))?;
 
-    Ok(models::QueryResponse(vec![models::RowSet {
-        aggregates: None,
-        rows: Some(rows),
-    }]))
+        let rows: Vec<IndexMap<String, RowFieldValue>> =
+            vec![IndexMap::from_iter([(
+                "__value".into(),
+                RowFieldValue(response)
+            )])];
+
+        Ok(models::QueryResponse(vec![models::RowSet {
+            aggregates: None,
+            rows: Some(rows),
+        }]))
+
+    } else {
+        let response = http_response
+            .text()
+            .await
+            .map_err(|err| QueryError::Other(Box::new(err)))?;
+
+        Err(QueryError::InvalidRequest(response))
+    }
+
 }
 
 

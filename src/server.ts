@@ -20,12 +20,19 @@ router
     const funcs = importedFuncs as FuncsMap;
 
     let retval = funcs[invocation.functionName](...invocation.args);
-    if (typeof retval === "object" && 'then' in retval && typeof retval.then === "function") {
-      retval = await retval;
+
+    try {
+      if (typeof retval === "object" && 'then' in retval && typeof retval.then === "function") {
+        retval = await retval;
+      }
+      
+      context.response.type = "application/json";
+      context.response.body = JSON.stringify(retval);
+    } catch(e) {
+      context.response.type = "application/json";
+      context.response.status = 500;
+      context.response.body = {type: 'error', message: e.message, stack: e.stack};
     }
-    
-    context.response.type = "application/json";
-    context.response.body = JSON.stringify(retval);
   });
 
 const app = new Application();
