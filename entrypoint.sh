@@ -29,4 +29,4 @@ mkfifo /deno_run.log
 
 popd
 
-echo '' | parallel --ungroup --halt-on-error 2 ::: "$@" 'tail -f /deno_run.log'
+echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" 'tail -f /deno_run.log'
