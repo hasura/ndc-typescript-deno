@@ -313,7 +313,7 @@ async fn handle(
             obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
         )],
         _ => vec![IndexMap::from_iter([(
-            "value".into(),
+            "__value".into(),
             RowFieldValue(response),
         )])],
     };
