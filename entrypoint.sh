@@ -11,20 +11,21 @@ cp src/infer.ts "$typescript_directory"
 cp src/deno.d.ts "$typescript_directory"
 cp "$typescript_source" "$typescript_directory"/funcs.ts
 
-(
-  cd "$typescript_directory"
-  /root/.deno/bin/deno vendor funcs.ts
-  /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts 2>/inference_errors.txt > /schema.json
-  if [ $? -eq 0 ]
-  then
-    echo "Inference Successful"
-  else
-    echo "Inference Failed"
-    cat /inference_errors.txt
-    exit 1
-  fi
-  
-  /root/.deno/bin/deno run --allow-env --allow-net --allow-env server.ts & # Server
-)
+pushd "$typescript_directory" || echo "Couldn't change dir to $typescript_directory" && exit 1
+
+/root/.deno/bin/deno vendor funcs.ts
+/root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts 2>/inference_errors.txt > /schema.json
+if [ $? -eq 0 ]
+then
+  echo "Inference Successful"
+else
+  echo "Inference Failed"
+  cat /inference_errors.txt
+  exit 1
+fi
+
+/root/.deno/bin/deno run --allow-env --allow-net --allow-env server.ts & # Server
+
+popd || echo "Couldn't pop from $typescript_directory" && exit 1
 
 "$@"
