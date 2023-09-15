@@ -299,24 +299,29 @@ async fn handle(
         .await
         .map_err(|err| QueryError::Other(Box::new(err)))?;
 
-    let rows: Vec<IndexMap<String, RowFieldValue>> = match response {
-        serde_json::Value::Array(arr) => arr
-            .into_iter()
-            .map(|v| match v {
-                serde_json::Value::Object(obj) => {
-                    IndexMap::from_iter(obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))))
-                }
-                _ => IndexMap::from_iter([("value".into(), RowFieldValue(v))]),
-            })
-            .collect(),
-        serde_json::Value::Object(obj) => vec![IndexMap::from_iter(
-            obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
-        )],
-        _ => vec![IndexMap::from_iter([(
+    let rows: Vec<IndexMap<String, RowFieldValue>> =
+        vec![IndexMap::from_iter([(
             "__value".into(),
-            RowFieldValue(response),
-        )])],
-    };
+            RowFieldValue(response)
+        )])];
+        // match response {
+        //     serde_json::Value::Array(arr) => arr
+        //         .into_iter()
+        //         .map(|v| match v {
+        //             serde_json::Value::Object(obj) => {
+        //                 IndexMap::from_iter(obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))))
+        //             }
+        //             _ => IndexMap::from_iter([("__value".into(), RowFieldValue(v))]),
+        //         })
+        //         .collect(),
+        //     serde_json::Value::Object(obj) => vec![IndexMap::from_iter(
+        //         obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
+        //     )],
+        //     _ => vec![IndexMap::from_iter([(
+        //         "__value".into(),
+        //         RowFieldValue(response),
+        //     )])],
+        // };
 
     Ok(models::QueryResponse(vec![models::RowSet {
         aggregates: None,
