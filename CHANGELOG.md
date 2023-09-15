@@ -9,6 +9,13 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.3
+
+Error improvements.
+
+* Updating SDK
+* Correct error reporting from exceptions thrown from user functions
+
 ## v0.2
 
 Update to SDK.
