@@ -1,14 +1,16 @@
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::io;
 use std::path::Path;
 
 use async_trait::async_trait;
 use indexmap::IndexMap;
+use ndc_client::models::{MutationOperationResults, MutationOperation};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 use std::fs::read_to_string;
 
-use ndc_hub::connector::{self, QueryError};
+use ndc_hub::connector::{self, QueryError, Connector};
 use ndc_hub::models::{self, RowFieldValue};
 
 #[derive(Clone, Default)]
@@ -40,14 +42,20 @@ impl Default for RawConfiguration {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct InputFunctionArgumentPositions {
-    functions: Vec<InputFunctionInfo>
+    functions: Vec<InputFunctionInfo>,
+    procedures: Vec<InputFunctionInfo>
 }
 
 impl InputFunctionArgumentPositions {
     fn fix(&self) -> FunctionArgumentPositions {
+
         let mut functions = IndexMap::new();
 
-        for f in self.functions.clone() {
+        let mut functions_and_procedures = self.functions.clone();
+        let mut procedures_clone = self.procedures.clone();
+        functions_and_procedures.append(&mut procedures_clone);
+
+        for f in functions_and_procedures {
 
             let mut arguments = IndexMap::new();
 
@@ -197,11 +205,30 @@ impl connector::Connector for TypescriptConnector {
     }
 
     async fn mutation(
-        _configuration: &Self::Configuration,
-        _state: &Self::State,
-        _request: models::MutationRequest,
+        configuration: &Self::Configuration,
+        state: &Self::State,
+        request: models::MutationRequest,
     ) -> Result<models::MutationResponse, connector::MutationError> {
-        todo!()
+
+        let mut operation_results: Vec<MutationOperationResults> = vec!();
+
+        for op in request.operations {
+            match op {
+                MutationOperation::Procedure {name, arguments, fields: _} => {
+                    let argument_literals = arguments.iter().map(|(k,v)| (k.clone(), models::Argument::Literal { value: v.clone()} )).collect();
+                    let result = handle(configuration, state, name, argument_literals).await
+                        .map_err(query_error_to_mutation_error)?;
+                    let mutation_operation_results = result_to_mutation_operation_results(result);
+                    operation_results.push(mutation_operation_results);
+                    ()
+                }
+                _ => {
+                    () // TODO: Log unsupported types.
+                }
+            }
+        }
+
+        return Ok(models::MutationResponse { operation_results });
     }
 
     async fn query(
@@ -209,62 +236,94 @@ impl connector::Connector for TypescriptConnector {
         state: &Self::State,
         request: models::QueryRequest,
     ) -> Result<models::QueryResponse, connector::QueryError> {
-        let function_name = request.collection;
-
-        // Note: The arg names that are passed in here are actually indexed by the name suffix
-        let mut indexed_args = request
-            .arguments
-            .into_iter()
-            .map(|(arg_name, argument)| eval_argument(arg_name, argument))
-            .collect::<Result<Vec<_>,_>>()?;
-
-        indexed_args.sort_by_key(|(argument_name, _)| configuration.function_argument_positions.get(&function_name, argument_name));
-        // indexed_args.sort_by_key(|(i, _)| arg_positions[function_name][arg_name]);
-
-        let args = indexed_args.into_iter().map(|(_, v)| v).collect();
-
-        let request_body = FunctionInvocation {
-            function_name,
-            args,
-        };
-        let http_response = state
-            .http_client
-            .post(configuration.deno_deployment_url.clone())
-            .json(&request_body)
-            .send()
-            .await
-            .map_err(|err| QueryError::Other(Box::new(err)))?;
-
-        let response = http_response
-            .json::<serde_json::Value>()
-            .await
-            .map_err(|err| QueryError::Other(Box::new(err)))?;
-
-        let rows: Vec<IndexMap<String, RowFieldValue>> = match response {
-            serde_json::Value::Array(arr) => arr
-                .into_iter()
-                .map(|v| match v {
-                    serde_json::Value::Object(obj) => {
-                        IndexMap::from_iter(obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))))
-                    }
-                    _ => IndexMap::from_iter([("value".into(), RowFieldValue(v))]),
-                })
-                .collect(),
-            serde_json::Value::Object(obj) => vec![IndexMap::from_iter(
-                obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
-            )],
-            _ => vec![IndexMap::from_iter([(
-                "value".into(),
-                RowFieldValue(response),
-            )])],
-        };
-
-        Ok(models::QueryResponse(vec![models::RowSet {
-            aggregates: None,
-            rows: Some(rows),
-        }]))
+        handle(configuration, state, request.collection, request.arguments).await
     }
 }
+
+fn query_error_to_mutation_error(query_error: connector::QueryError) -> connector::MutationError {
+    match query_error {
+        QueryError::InvalidRequest(msg) => connector::MutationError::InvalidRequest(msg),
+        QueryError::UnsupportedOperation(msg) => connector::MutationError::UnsupportedOperation(msg),
+        QueryError::Other(err) => connector::MutationError::Other(err)
+    }
+}
+
+fn result_to_mutation_operation_results(result: models::QueryResponse) -> MutationOperationResults {
+    // TODO: Revisit this in order to respond to rows > 1
+    for rs in result.0.iter() {
+        return MutationOperationResults {
+            affected_rows: 1,
+            returning: Some(rs.rows.clone().unwrap_or(vec!()))
+        }
+    }
+    return MutationOperationResults {
+        affected_rows: 0,
+        returning: None
+    }
+}
+
+async fn handle(
+    configuration: &Configuration,
+    state: &State,
+    collection: String,
+    arguments: BTreeMap<String, models::Argument>,
+) -> Result<models::QueryResponse, connector::QueryError> {
+    let function_name = collection;
+
+    // Note: The arg names that are passed in here are actually indexed by the name suffix
+    let mut indexed_args = arguments
+        .into_iter()
+        .map(|(arg_name, argument)| eval_argument(arg_name, argument))
+        .collect::<Result<Vec<_>,_>>()?;
+
+    indexed_args.sort_by_key(|(argument_name, _)|
+        configuration.function_argument_positions.get(&function_name, argument_name)
+    );
+
+    let args = indexed_args.into_iter().map(|(_, v)| v).collect();
+
+    let request_body = FunctionInvocation {
+        function_name,
+        args,
+    };
+    let http_response = state
+        .http_client
+        .post(configuration.deno_deployment_url.clone())
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|err| QueryError::Other(Box::new(err)))?;
+
+    let response = http_response
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|err| QueryError::Other(Box::new(err)))?;
+
+    let rows: Vec<IndexMap<String, RowFieldValue>> = match response {
+        serde_json::Value::Array(arr) => arr
+            .into_iter()
+            .map(|v| match v {
+                serde_json::Value::Object(obj) => {
+                    IndexMap::from_iter(obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))))
+                }
+                _ => IndexMap::from_iter([("value".into(), RowFieldValue(v))]),
+            })
+            .collect(),
+        serde_json::Value::Object(obj) => vec![IndexMap::from_iter(
+            obj.into_iter().map(|(s, v)| (s, RowFieldValue(v))),
+        )],
+        _ => vec![IndexMap::from_iter([(
+            "value".into(),
+            RowFieldValue(response),
+        )])],
+    };
+
+    Ok(models::QueryResponse(vec![models::RowSet {
+        aggregates: None,
+        rows: Some(rows),
+    }]))
+}
+
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -313,6 +372,6 @@ fn read_schema<P: AsRef<Path> + Display + Clone>(
             let err = io::Error::new(io::ErrorKind::Other, message);
             Box::new(err)
         })?;
-    
+
     Ok((schema, positions_vector.fix()))
 }
