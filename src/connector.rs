@@ -10,7 +10,7 @@ use serde_derive::{Deserialize, Serialize};
 use url::Url;
 use std::fs::read_to_string;
 
-use ndc_hub::connector::{self, QueryError, Connector};
+use ndc_hub::connector::{self, QueryError};
 use ndc_hub::models::{self, RowFieldValue};
 
 #[derive(Clone, Default)]

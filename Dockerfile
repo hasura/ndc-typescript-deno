@@ -22,7 +22,7 @@ COPY ./src ./src
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive \
   apt-get install --no-install-recommends --assume-yes \
-  unzip curl libssl-dev ca-certificates jq
+  unzip curl libssl-dev ca-certificates jq parallel
 RUN curl -fsSL https://deno.land/x/install/install.sh | sh
 
 ENTRYPOINT [ "./entrypoint.sh", "./ndc-typescript-deno"]
