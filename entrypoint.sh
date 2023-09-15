@@ -11,7 +11,6 @@ cp src/infer.ts "$typescript_directory"
 cp src/deno.d.ts "$typescript_directory"
 cp "$typescript_source" "$typescript_directory"/funcs.ts
 
-
 if ! pushd "$typescript_directory"
 then
   echo "Couldn't change dir to $typescript_directory"
@@ -29,12 +28,15 @@ else
   exit 1
 fi
 
-/root/.deno/bin/deno run --allow-env --allow-net --allow-env server.ts & # Server
+/root/.deno/bin/deno run --allow-env --allow-net --allow-env server.ts > /deno_run.log 2>&1 & # Server
 
 if ! popd
 then
   echo "Couldn't pop from $typescript_directory"
   exit 1
 fi
+
+sleep 30 # TODO: Remove me
+cat /deno_run.log
 
 "$@"
