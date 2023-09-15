@@ -16,6 +16,8 @@ router
   .post("/", async (context) => {
     const jsonBody = context.request.body()
     const invocation: FunctionInvocation = await jsonBody.value;
+
+    console.log(`Function request: ${invocation.functionName}`);
     
     const funcs = importedFuncs as FuncsMap;
 
