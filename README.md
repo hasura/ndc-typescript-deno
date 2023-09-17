@@ -4,10 +4,10 @@
 
 The Typescript (Deno) Connector allows a running connector to be inferred from a Typescript file (optionally with dependencies).
 
-* Hub Link TODO
+* https://hasura.io/connectors/typescript-deno
 * Docs Link TODO
 
-TODO: Screenshot of TS file and GQL API side by side.
+![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/fb7f4afd-0302-432b-b7ce-3cc7d1f3546b)
 
 ## Overview
 
