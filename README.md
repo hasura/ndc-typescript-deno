@@ -26,9 +26,9 @@ It assumes that dependencies are specified in accordance with [Deno](https://den
 Your functions should be organised into a directory with one file acting as the entrypoint.
 
 <details>
-<summary> An example could be as follows - `functions/main.ts` </summary>
+<summary> An example Typescript entrypoint: `functions/main.ts` </summary>
 
-```
+```typescript
 import { Hash, encode } from "https://deno.land/x/checksum@1.2.0/mod.ts";
 
 export function make_password_hash(pw: string): string {
