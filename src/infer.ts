@@ -1,5 +1,6 @@
 import ts from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
+import {existsSync} from "https://deno.land/std/fs/mod.ts";
 
 // TODO: Resolve deno check type errors.
 
@@ -24,16 +25,20 @@ function mapObject(obj, fn) {
 }
 
 function programInfo(filename: string) {
+  const vendorFilePath = './vendor/import_map.json';
+  let pathsMap = [];
 
-  const importString = Deno.readTextFileSync('./vendor/import_map.json');
-  const vendorMap = JSON.parse(importString);
-  const pathsMap = mapObject(vendorMap.imports, (k, v) => {
-    if(/\.ts$/.test(k)) {
-      return [k, [ v.replace(/./, './vendor') ]];
-    } else {
-      return [k.replace(/$/,'*'), [ v.replace(/./, './vendor').replace(/$/, '*') ]];
-    }
-  });
+  if (existsSync(vendorFilePath)) {
+    const importString = Deno.readTextFileSync(vendorFilePath);
+    const vendorMap = JSON.parse(importString);
+    const pathsMap = mapObject(vendorMap.imports, (k, v) => {
+      if(/\.ts$/.test(k)) {
+        return [k, [ v.replace(/./, './vendor') ]];
+      } else {
+        return [k.replace(/$/,'*'), [ v.replace(/./, './vendor').replace(/$/, '*') ]];
+      }
+    });
+  }
 
   const pathname = new URL('', import.meta.url).pathname;
   const dirname = pathname.replace(/\/[^\/]*$/,'');
