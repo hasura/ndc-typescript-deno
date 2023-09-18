@@ -152,6 +152,27 @@ you can run the following code actions:
 
 This will integrate your connector into your Hasura project which can then be deployed or updated using the Hasura3 CLI.
 
+## Service Authentication
+
+If you don't wish to have your connector publically accessible then you must set a service token by specifying the  `SERVICE_TOKEN_SECRET` environment variable when creating your connector:
+
+* `--env SERVICE_TOKEN_SECRET=SUPER_SECRET_TOKEN_XXX123`
+
+Your Hasura project metadata must then set a matching bearer token:
+
+```yaml
+kind: DataSource
+name: sendgrid
+dataConnectorUrl:
+  url: 'http://localhost:8100'
+auth:
+  type: "Bearer",
+  token: "SUPER_SECRET_TOKEN_XXX123"
+```
+
+While you can specify the token inline as above, it is recommended to use the Hasura secrets functionality for this purpose.
+
+
 ## Limitations
 
 The following limitations exist with the Typescript connector. These limitations are all being tracked for future development.
