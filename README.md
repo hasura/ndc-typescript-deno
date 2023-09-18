@@ -162,4 +162,26 @@ The following limitations exist with the Typescript connector. These limitations
 
 ## Development
 
-TODO: Rust SDK, Docker, Etc.
+For contribution to this connector you will want to have the following dependencies:
+
+* Rust (via [rustup](https://rustup.rs))
+* [Deno](https://deno.com)
+* (Optionally) [Docker](https://www.docker.com)
+
+In order to perform local development, first server your functions:
+
+* Copy `src/server.ts` into your test `functions/` directory
+* Copy your main functions entrypoint (e.g. `functions/main.ts`) to `functions/funcs.ts`
+* Switch to your functions directory: `cd functions/`
+* Serve yor functions with `deno run --allow-net --allow-sys --allow-env server.ts`
+
+In a second shell session perform inference:
+
+* Vendor your dependencies with `deno vendor functions/funcs.ts`
+* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/funcs.ts > schema.json`
+
+Then start the connector:
+
+* With the command: `cargo run serve --configuration <(echo '{"typescript_source": "functions/funcs.ts", "schema_location": "./schema.json"}') --port 8100`
+* You can then test in a Husura project by referencing the connector on `http://localhost:8100`
+* Or using the `hasura3` tunnel commands to reference in a Hasura Cloud project
