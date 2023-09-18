@@ -166,11 +166,22 @@ name: sendgrid
 dataConnectorUrl:
   url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
 auth:
-  type: "Bearer",
+  type: Bearer
   token: "SUPER_SECRET_TOKEN_XXX123"
 ```
 
-While you can specify the token inline as above, it is recommended to use the Hasura secrets functionality for this purpose.
+While you can specify the token inline as above, it is recommended to use the Hasura secrets functionality for this purpose:
+
+```yaml
+kind: DataSource
+name: sendgrid
+dataConnectorUrl:
+  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
+auth:
+  type: Bearer
+  token:
+    valueFromSecret: CONNECTOR_TOKEN
+```
 
 
 ## Limitations
