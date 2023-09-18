@@ -109,6 +109,8 @@ Create the connector:
 > --volume ./functions:/functions \\
 > --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
 
+*Note: Even though you can use the "main" branch to deploy the latest connector features, see the [Hasura Connector Hub](https://hasura.io/connectors/typescript-deno) for verified release tags*
+
 Monitor the deployment status by name:
 
 > hasura connector status my-cool-connector:v1
@@ -123,7 +125,40 @@ my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
 
 ## Usage
 
-TODO: Adding to metadata and deploying project with hasura3
+This connector is intended to be used with Hasura v3 projects.
+
+Find the URL of your connector once deployed:
+
+> hasura connector list
+
+```
+my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
+```
+
+In order to use the connector once deployed you will first want to reference the connector in your project metadata:
+
+```yaml
+kind: DataSource
+name: my_connector
+dataConnectorUrl:
+  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
+```
+
+If you have the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura) installed
+you can run the following code actions:
+
+* `Hasura: Refresh data source`
+* `Hasura: Track all collections / functions ...`
+
+This will integrate your connector into your Hasura project which can then be deployed or updated using the Hasura3 CLI.
+
+## Limitations
+
+The following limitations exist with the Typescript connector. These limitations are all being tracked for future development.
+
+* Union types are not supported
+* Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
+
 
 ## Development
 
