@@ -164,7 +164,7 @@ Your Hasura project metadata must then set a matching bearer token:
 kind: DataSource
 name: sendgrid
 dataConnectorUrl:
-  url: 'http://localhost:8100'
+  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
 auth:
   type: "Bearer",
   token: "SUPER_SECRET_TOKEN_XXX123"
