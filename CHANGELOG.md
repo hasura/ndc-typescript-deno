@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.7
+
+Startup optimisation.
+
+* Reusing vendor from inference when running server.ts to avoid downloading dependencies twice
+
 ## v0.6
 
 Logging bug fix.
