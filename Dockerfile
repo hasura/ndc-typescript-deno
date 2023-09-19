@@ -28,5 +28,5 @@ COPY ./entrypoint.sh ./entrypoint.sh
 COPY ./src ./src
 COPY ./functions /functions 
 
-ENTRYPOINT [ "./entrypoint.sh", "./ndc-typescript-deno"]
+ENTRYPOINT [ "./entrypoint.sh", "/app/ndc-typescript-deno"]
 CMD ["serve", "--configuration", "/etc/connector/config.json", "--port", "8080"]

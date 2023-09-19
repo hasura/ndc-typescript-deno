@@ -11,7 +11,7 @@ cp src/infer.ts "$typescript_directory"
 cp src/deno.d.ts "$typescript_directory"
 cp "$typescript_source" "$typescript_directory"/funcs.ts
 
-pushd "$typescript_directory"
+cd "$typescript_directory"
 
 /root/.deno/bin/deno vendor funcs.ts
 /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts 2>/inference_errors.txt > /schema.json
@@ -23,7 +23,5 @@ else
   cat /inference_errors.txt
   exit 1
 fi
-
-popd
 
 echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" '/root/.deno/bin/deno run --allow-env --allow-net server.ts'

@@ -284,7 +284,7 @@ async fn handle(
     let args = indexed_args.into_iter().map(|(_, v)| v).collect();
 
     let request_body = FunctionInvocation {
-        function_name,
+        function_name: function_name.clone(),
         args,
     };
 
@@ -316,6 +316,8 @@ async fn handle(
         }]))
 
     } else {
+        println!("There was an error executing the function: {}", function_name);
+
         let response = http_response
             .text()
             .await
