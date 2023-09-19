@@ -9,6 +9,13 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.4
+
+Integrated V2 Proxy.
+
+* Includes a V2 compatibility proxy that can be activated by setting: `ENABLE_V2_COMPATIBILITY=true`
+* Fixes bug in `infer.ts` that would throw an error function definitions had no imports: https://github.com/hasura/ndc-typescript-deno/pull/7
+
 ## v0.3
 
 Error improvements.
