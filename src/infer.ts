@@ -1,37 +1,31 @@
 import ts from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
-import {existsSync} from "https://deno.land/std/fs/mod.ts";
-
-// TODO: Resolve deno check type errors.
+import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 
 type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
 
-type Type = any;
-
-declare global {
-  var Deno: any;
-}
-
-function is_struct(ty: Type): Boolean {
+function is_struct(ty: any): boolean {
   return (ty?.members?.size || 0) > 0;
 }
 
-function mapObject(obj, fn) {
-  return Object.fromEntries(
-    Object.entries(obj).map(
-      ([k, v], i) => fn(k,v)
-    )
-  );
+function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) => [string, O])): {[key: string]: O} {
+  const keys: Array<string> = Object.keys(obj);
+  const result: {[key: string]: O} = {};
+  for(const k of keys) {
+    const [k2, v] = fn(k, obj[k]);
+    result[k2] = v;
+  }
+  return result;
 }
 
 function programInfo(filename: string) {
   const vendorFilePath = './vendor/import_map.json';
-  let pathsMap = [];
+  let pathsMap: {[key: string]: Array<string>} = {};
 
   if (existsSync(vendorFilePath)) {
     const importString = Deno.readTextFileSync(vendorFilePath);
     const vendorMap = JSON.parse(importString);
-    const pathsMap = mapObject(vendorMap.imports, (k, v) => {
+    pathsMap = mapObject(vendorMap.imports, (k: string, v: string) => {
       if(/\.ts$/.test(k)) {
         return [k, [ v.replace(/./, './vendor') ]];
       } else {
@@ -44,7 +38,7 @@ function programInfo(filename: string) {
   const dirname = pathname.replace(/\/[^\/]*$/,'');
   const deno_lib_path = resolve(`${dirname}/deno.d.ts`); // Assumes that deno.d.ts and infer.ts will be co-located.
 
-  let program = ts.createProgram([filename], {
+  const program = ts.createProgram([filename], {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
@@ -58,7 +52,7 @@ function programInfo(filename: string) {
     paths: pathsMap
   });
 
-  let diagnostics = ts.getPreEmitDiagnostics(program);
+  const diagnostics = ts.getPreEmitDiagnostics(program);
 
   // console.debug(diagnostics);
 
@@ -71,8 +65,8 @@ function programInfo(filename: string) {
         if (! /^vendor\//.test(diagnostic.file.fileName)) {
           fail = true;
         }
-        let { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
-        let message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+        const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
+        const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
         console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
       } else {
         console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
@@ -85,33 +79,39 @@ function programInfo(filename: string) {
     }
   }
 
-  let checker = program.getTypeChecker();
+  const checker = program.getTypeChecker();
 
-  let no_ops = {
+  type Ops = {
     aggregate_functions: {},
     comparison_operators: {},
     update_operators: {},
   };
 
-  let schema_response = {
-    scalar_types: {},
-    object_types: {},
+  const no_ops: Ops = {
+    aggregate_functions: {},
+    comparison_operators: {},
+    update_operators: {},
+  };
+
+  const schema_response = {
+    scalar_types: {} as {[key: string]: Ops},
+    object_types: {} as {[key: string]: any},
     collections: [],
     functions: [] as any[],
     procedures: [] as any[],
   };
 
-  const scalar_mappings = {
+  const scalar_mappings: {[key: string]: string} = {
     "string": "String",
     "bool": "Boolean",
     "boolean": "Boolean",
     "number": "Float",
   };
 
-  let validate_type = (name: string, ty: Type): ValidateTypeResult => {
+  const validate_type = (name: string, ty: any): ValidateTypeResult => {
     const type_str = checker.typeToString(ty);
     const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
-    const type_name_lower = type_name.toLowerCase();
+    const type_name_lower: string = type_name.toLowerCase();
 
     // PROMISE -- TODO: Don't recur on inner promises.
     if (type_name == "Promise") {
@@ -159,7 +159,7 @@ function programInfo(filename: string) {
     return { type: 'named', name: 'IMPOSSIBLE'}; // Satisfy TS Checker.
   }
 
-  for (let src of program.getSourceFiles()) {
+  for (const src of program.getSourceFiles()) {
     if (src.isDeclarationFile) continue;
     if (resolve(src.fileName) != resolve(filename)) continue;
 
