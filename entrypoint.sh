@@ -13,7 +13,7 @@ cp "$typescript_source" "$typescript_directory"/funcs.ts
 
 cd "$typescript_directory"
 
-/root/.deno/bin/deno vendor funcs.ts
+/root/.deno/bin/deno vendor server.ts
 /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts 2>/inference_errors.txt > /schema.json
 if [ $? -eq 0 ]
 then
@@ -24,4 +24,4 @@ else
   exit 1
 fi
 
-echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" '/root/.deno/bin/deno run --allow-env --allow-net server.ts'
+echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" '/root/.deno/bin/deno run --import-map=vendor/import_map.json --allow-env --allow-net server.ts'
