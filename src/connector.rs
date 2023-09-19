@@ -5,13 +5,12 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use indexmap::IndexMap;
-use ndc_client::models::{MutationOperationResults, MutationOperation};
 use serde_derive::{Deserialize, Serialize};
 use url::Url;
 use std::fs::read_to_string;
 
 use ndc_hub::connector::{self, QueryError};
-use ndc_hub::models::{self, RowFieldValue};
+use ndc_hub::models::{self, RowFieldValue, MutationOperationResults, MutationOperation};
 
 #[derive(Clone, Default)]
 pub struct TypescriptConnector;
