@@ -93,7 +93,7 @@ You will need:
 
 * [V3 CLI](https://github.com/hasura/v3-cli) (With Logged in Session)
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
-* Secret service token
+* A value to use with `SERVICE_TOKEN_SECRET`
 * A configuration file
 
 The configuration file format needs at a minimum
