@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.6
+
+Logging bug fix.
+
+* Improved entrypoint.sh to have better logging behaviour
+
 ## v0.5
 
 Support selecting fields.
