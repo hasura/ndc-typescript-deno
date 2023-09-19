@@ -24,9 +24,6 @@ else
   exit 1
 fi
 
-mkfifo /deno_run.log
-/root/.deno/bin/deno run --allow-env --allow-net server.ts > /deno_run.log 2>&1 & # Server
-
 popd
 
-echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" 'tail -f /deno_run.log'
+echo '' | parallel --ungroup --halt-on-error 2 ::: "$*" '/root/.deno/bin/deno run --allow-env --allow-net server.ts'
