@@ -6,11 +6,12 @@ use std::path::Path;
 use async_trait::async_trait;
 use indexmap::IndexMap;
 use serde_derive::{Deserialize, Serialize};
+use serde_json::Map;
 use url::Url;
 use std::fs::read_to_string;
 
 use ndc_hub::connector::{self, QueryError};
-use ndc_hub::models::{self, RowFieldValue, MutationOperationResults, MutationOperation};
+use ndc_hub::models::{self, RowFieldValue, MutationOperationResults, MutationOperation, Field};
 
 #[derive(Clone, Default)]
 pub struct TypescriptConnector;
@@ -213,9 +214,9 @@ impl connector::Connector for TypescriptConnector {
 
         for op in request.operations {
             match op {
-                MutationOperation::Procedure {name, arguments, fields: _} => {
+                MutationOperation::Procedure {name, arguments, fields} => {
                     let argument_literals = arguments.iter().map(|(k,v)| (k.clone(), models::Argument::Literal { value: v.clone()} )).collect();
-                    let result = handle(configuration, state, name, argument_literals).await
+                    let result = handle(configuration, state, name, argument_literals, fields).await
                         .map_err(query_error_to_mutation_error)?;
                     let mutation_operation_results = result_to_mutation_operation_results(result);
                     operation_results.push(mutation_operation_results);
@@ -235,7 +236,7 @@ impl connector::Connector for TypescriptConnector {
         state: &Self::State,
         request: models::QueryRequest,
     ) -> Result<models::QueryResponse, connector::QueryError> {
-        handle(configuration, state, request.collection, request.arguments).await
+        handle(configuration, state, request.collection, request.arguments, request.query.fields).await
     }
 }
 
@@ -266,6 +267,7 @@ async fn handle(
     state: &State,
     collection: String,
     arguments: BTreeMap<String, models::Argument>,
+    fields: Option<IndexMap<String, Field>> 
 ) -> Result<models::QueryResponse, connector::QueryError> {
     let function_name = collection;
 
@@ -294,17 +296,18 @@ async fn handle(
         .await
         .map_err(|err| QueryError::Other(Box::new(err)))?;
 
-
     if http_response.status().is_success() {
         let response = http_response
             .json::<serde_json::Value>()
             .await
             .map_err(|err| QueryError::Other(Box::new(err)))?;
 
+        let processed_response = process_fields(response, fields);
+
         let rows: Vec<IndexMap<String, RowFieldValue>> =
             vec![IndexMap::from_iter([(
                 "__value".into(),
-                RowFieldValue(response)
+                RowFieldValue(processed_response)
             )])];
 
         Ok(models::QueryResponse(vec![models::RowSet {
@@ -323,6 +326,36 @@ async fn handle(
 
 }
 
+fn process_fields(response: serde_json::Value, fields: Option<IndexMap<String, Field>>) -> serde_json::Value {
+    match fields {
+        None => response,
+        Some(fs) => {
+            match response {
+                serde_json::Value::Object(o) => {
+                    let obj = fs.into_iter().filter_map(|(k,v)| {
+                        match v {
+                            Field::Column { column } => {
+                                match o.get(&column) {
+                                    None => Some((k, serde_json::Value::Null)),
+                                    Some(v) => Some((k,v.clone()))
+                                }
+                            },
+                            _ => None
+                        }
+                    }).collect::<Map<String, serde_json::Value>>();
+                    serde_json::Value::Object(obj)
+                },
+                serde_json::Value::Array(a) => {
+                    let arr = a.into_iter().map(|e| {
+                        process_fields(e.clone(), Some(fs.clone()))
+                    }).collect();
+                    serde_json::Value::Array(arr)
+                },
+                _ => response
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
