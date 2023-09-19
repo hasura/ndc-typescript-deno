@@ -31,6 +31,9 @@ router
       context.response.type = "application/json";
       context.response.body = JSON.stringify(retval);
     } catch(e) {
+
+      console.error(`Encountered error when executing function ${invocation.functionName}: ${e.message}`);
+
       context.response.type = "application/json";
       context.response.status = 500;
       context.response.body = {type: 'error', message: e.message, stack: e.stack};

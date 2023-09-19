@@ -9,6 +9,13 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.5
+
+Support selecting fields.
+
+* Query with field selections are now respected
+* Errors during function execution are logged from Deno server
+
 ## v0.4
 
 Integrated V2 Proxy.
