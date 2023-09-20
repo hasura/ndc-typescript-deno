@@ -153,7 +153,11 @@ you can run the following code actions:
 * `Hasura: Refresh data source`
 * `Hasura: Track all collections / functions ...`
 
-This will integrate your connector into your Hasura project which can then be deployed or updated using the Hasura3 CLI.
+This will integrate your connector into your Hasura project which can then be deployed or updated using the Hasura3 CLI:
+
+```
+hasura3 cloud build create --project-id my-project-id --metadata-file metadata.hml
+```
 
 ## Service Authentication
 
