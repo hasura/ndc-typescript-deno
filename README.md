@@ -74,11 +74,10 @@ export function make_object_array(): Array<MyObjectType> {
 Top level exported function definitions with `pure` tag will be made available as functions,
 and others as procedures, which will become queries and mutations respectively.
 
-Return types should be inferred.
-
-Parameters should be inferred and named after their input parameter names.
-
-Simple scalar, array, and object types should be supported.
+* Return types are inferred
+* Parameters are inferred and named after their input parameter names.
+* Simple scalar, array, and object types should be supported
+* Exceptions can be thrown
 
 Limitations:
 
