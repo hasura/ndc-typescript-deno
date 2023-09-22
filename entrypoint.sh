@@ -16,7 +16,7 @@ then
   echo "already found vendor and inference results"
 else
   /root/.deno/bin/deno vendor -f server.ts
-  /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts funcs.ts 2>/inference_errors.txt > /schema.json
+  /root/.deno/bin/deno run --allow-env --allow-sys --allow-read --allow-net infer.ts main.ts 2>/inference_errors.txt > /schema.json
   if [ $? -eq 0 ]
   then
     echo "Inference Successful"
