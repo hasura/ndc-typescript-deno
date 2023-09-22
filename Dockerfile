@@ -28,5 +28,8 @@ COPY ./entrypoint.sh ./entrypoint.sh
 COPY ./src ./src
 COPY ./functions /functions 
 
+# Pre-cache inference results and dependencies
+RUN  EARLY_ENTRY_EXIT=true ./entrypoint.sh /app/ndc-typescript-deno --configuration <(echo '{}')
+
 ENTRYPOINT [ "./entrypoint.sh", "/app/ndc-typescript-deno"]
 CMD ["serve", "--configuration", "/etc/connector/config.json", "--port", "8080"]

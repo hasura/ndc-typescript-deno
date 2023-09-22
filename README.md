@@ -95,19 +95,17 @@ You will need:
 * A value to use with `SERVICE_TOKEN_SECRET`
 * A configuration file
 
-The configuration file format needs at a minimum
-a `typescript_source` referenced which matches the main
-typescript file as mounted with the `--volume` flag.
+Your functions directory should be mounted at `/functions` with the `--volume` flag.
 
 ```
-{"typescript_source": "/functions/main.ts"}
+--volume ./my_functions_directory:/functions
 ```
 
 Create the connector:
 
 > hasura3 connector create my-cool-connector:v1 \\
 > --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \\
-> --config-file config.json \\
+> --config-file <(echo '{}') \\
 > --volume ./functions:/functions \\
 > --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
 
