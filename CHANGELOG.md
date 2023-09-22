@@ -9,6 +9,13 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.8
+
+Required entrypoint: /functions/index.ts;
+
+* Entrypoint: /functions/index.ts
+* Moving work from entrypoint.sh into Dockerfile to improve hibernation wakeup speed
+
 ## v0.7
 
 Startup optimisation.
