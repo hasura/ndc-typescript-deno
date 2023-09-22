@@ -2,7 +2,6 @@
 
 echo "$@"
 
-typescript_source=/functions/main.ts
 typescript_directory=/functions
 
 cp src/server.ts "$typescript_directory"

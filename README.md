@@ -13,7 +13,7 @@ The Typescript (Deno) Connector allows a running connector to be inferred from a
 
 The connector runs in the following manner:
 
-* The typescript sources are assembled
+* The typescript sources are assembled (with `main.ts` as your interface definition)
 * Dependencies are fetched into a vendor directory
 * Inference is performed and output to schema.json
 * The functions are served via HTTP locally in the background with the Deno runtime
@@ -207,17 +207,17 @@ For contribution to this connector you will want to have the following dependenc
 In order to perform local development, first server your functions:
 
 * Copy `src/server.ts` into your test `functions/` directory
-* Copy your main functions entrypoint (e.g. `functions/main.ts`) to `functions/funcs.ts`
+* Copy your main functions entrypoint (e.g. `functions/main.ts`) to `functions/main.ts`
 * Switch to your functions directory: `cd functions/`
 * Serve yor functions with `deno run --allow-net --allow-sys --allow-env server.ts`
 
 In a second shell session perform inference:
 
-* Vendor your dependencies with `deno vendor functions/funcs.ts`
-* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/funcs.ts > schema.json`
+* Vendor your dependencies with `deno vendor functions/main.ts`
+* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/main.ts > schema.json`
 
 Then start the connector:
 
-* With the command: `cargo run serve --configuration <(echo '{"typescript_source": "functions/funcs.ts", "schema_location": "./schema.json"}') --port 8100`
+* With the command: `cargo run serve --configuration <(echo '{"schema_location": "./schema.json"}') --port 8100`
 * You can then test in a Husura project by referencing the connector on `http://localhost:8100`
 * Or using the `hasura3` tunnel commands to reference in a Hasura Cloud project
