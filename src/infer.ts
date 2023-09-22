@@ -158,14 +158,12 @@ function programInfo(filename: string) {
       return { type: 'named', name: name}
     }
 
-    // UNHANDLED -- TODO: Make above cases more generic to reduce unhandled errors.
+    // UNHANDLED: Assume that the type is a scalar
     else {
-      // console.debug(ty);
-      console.error(`Unable to validate type of ${name}: ${type_str}.`);
-      Deno.exit(1); // Proceed
+      console.error(`Unable to validate type of ${name}: ${type_str}. Assuming that it is a scalar type.`);
+      schema_response.scalar_types[name] = no_ops;
+      return { type: 'named', name };
     }
-
-    return { type: 'named', name: 'IMPOSSIBLE'}; // Satisfy TS Checker.
   }
 
   for (const src of program.getSourceFiles()) {
