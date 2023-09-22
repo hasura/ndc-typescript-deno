@@ -94,8 +94,7 @@ You will need:
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * A value to use with `SERVICE_TOKEN_SECRET`
 * A configuration file
-
-Your functions directory should be mounted at `/functions` with the `--volume` flag.
+* a typescript sources directory
 
 ```
 --volume ./my_functions_directory:/functions
@@ -103,11 +102,13 @@ Your functions directory should be mounted at `/functions` with the `--volume` f
 
 Create the connector:
 
-> hasura3 connector create my-cool-connector:v1 \\
-> --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \\
-> --config-file <(echo '{}') \\
-> --volume ./functions:/functions \\
-> --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
+```
+hasura3 connector create my-cool-connector:v1 \
+  --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \
+  --config-file <(echo '{}') \
+  --volume ./functions:/functions \
+  --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
+```
 
 *Note: Even though you can use the "main" branch to deploy the latest connector features, see the [Hasura Connector Hub](https://hasura.io/connectors/typescript-deno) for verified release tags*
 
@@ -138,6 +139,12 @@ my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
 In order to use the connector once deployed you will first want to reference the connector in your project metadata:
 
 ```yaml
+kind: "AuthConfig"
+allowRoleEmulationFor: "admin"
+webhook:
+  mode: "POST"
+  webhookUrl: "https://auth.pro.hasura.io/webhook/ddn?role=admin"
+---
 kind: DataSource
 name: my_connector
 dataConnectorUrl:
