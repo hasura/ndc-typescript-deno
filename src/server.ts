@@ -1,6 +1,6 @@
 import { Application, Router } from "https://deno.land/x/oak@v12.6.0/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
-import * as importedFuncs from "./funcs.ts"
+import * as importedFuncs from "./index.ts"
 
 type FunctionInvocation = {
   functionName: string,

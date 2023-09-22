@@ -25,7 +25,6 @@ pub enum TypescriptSource {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, schemars::JsonSchema)]
 pub struct RawConfiguration {
-    pub typescript_source: Option<TypescriptSource>,
     pub schema_location: Option<String>, // Is there a better path type for this?
     pub deno_deployment_url: Option<String>,
 }
@@ -33,7 +32,6 @@ pub struct RawConfiguration {
 impl Default for RawConfiguration {
     fn default() -> RawConfiguration {
         RawConfiguration {
-            typescript_source: None,
             schema_location: None,
             deno_deployment_url: None,
         }

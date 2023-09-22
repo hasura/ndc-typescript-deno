@@ -1,4 +1,4 @@
-import ts from "npm:typescript@5.1.6";
+import ts, { FunctionDeclaration, SyntaxKind } from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 
@@ -108,6 +108,15 @@ function programInfo(filename: string) {
     "number": "Float",
   };
 
+  function isExported(node: FunctionDeclaration): boolean {
+    for(const mod of node.modifiers || []) {
+        if(mod.kind == ts.SyntaxKind.ExportKeyword) {
+          return true;
+        }
+    }
+    return false;
+  }
+
   const validate_type = (name: string, ty: any): ValidateTypeResult => {
     const type_str = checker.typeToString(ty);
     const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
@@ -149,14 +158,12 @@ function programInfo(filename: string) {
       return { type: 'named', name: name}
     }
 
-    // UNHANDLED -- TODO: Make above cases more generic to reduce unhandled errors.
+    // UNHANDLED: Assume that the type is a scalar
     else {
-      // console.debug(ty);
-      console.error(`Unable to validate type of ${name}: ${type_str}.`);
-      Deno.exit(1); // Proceed
+      console.error(`Unable to validate type of ${name}: ${type_str}. Assuming that it is a scalar type.`);
+      schema_response.scalar_types[name] = no_ops;
+      return { type: 'named', name };
     }
-
-    return { type: 'named', name: 'IMPOSSIBLE'}; // Satisfy TS Checker.
   }
 
   for (const src of program.getSourceFiles()) {
@@ -167,6 +174,12 @@ function programInfo(filename: string) {
       if (ts.isFunctionDeclaration(node)) {
         const fn_sym = checker.getSymbolAtLocation(node.name!)!;
         const fn_name = fn_sym.escapedName;
+
+        if(!isExported(node)) {
+          console.error(`Skipping non-exported function: ${fn_name}`);
+          return;
+        }
+
         const fn_type = checker.getTypeOfSymbolAtLocation(fn_sym, fn_sym.valueDeclaration!);
         const fn_desc = ts.displayPartsToString(fn_sym.getDocumentationComment(checker));
         const fn_tags = fn_sym.getJsDocTags();
