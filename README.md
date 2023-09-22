@@ -13,7 +13,7 @@ The Typescript (Deno) Connector allows a running connector to be inferred from a
 
 The connector runs in the following manner:
 
-* The typescript sources are assembled (with `main.ts` as your interface definition)
+* The typescript sources are assembled (with `index.ts` acting as your interface definition)
 * Dependencies are fetched into a vendor directory
 * Inference is performed and output to schema.json
 * The functions are served via HTTP locally in the background with the Deno runtime
@@ -30,7 +30,7 @@ Your functions should be organised into a directory with one file acting as the 
 
 ```typescript
 
-// functions/main.ts
+// functions/index.ts
 
 import { Hash, encode } from "https://deno.land/x/checksum@1.2.0/mod.ts";
 
@@ -204,17 +204,17 @@ For contribution to this connector you will want to have the following dependenc
 * [Deno](https://deno.com)
 * (Optionally) [Docker](https://www.docker.com)
 
-In order to perform local development, first server your functions:
+In order to perform local development, first serve your functions:
 
 * Copy `src/server.ts` into your test `functions/` directory
-* Copy your main functions entrypoint (e.g. `functions/main.ts`) to `functions/main.ts`
 * Switch to your functions directory: `cd functions/`
 * Serve yor functions with `deno run --allow-net --allow-sys --allow-env server.ts`
+  - `server.ts` loads `index.ts` to find your function definitions
 
 In a second shell session perform inference:
 
-* Vendor your dependencies with `deno vendor functions/main.ts`
-* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/main.ts > schema.json`
+* Vendor your dependencies with `deno vendor functions/index.ts`
+* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/index.ts > schema.json`
 
 Then start the connector:
 
