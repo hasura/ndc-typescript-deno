@@ -4,8 +4,10 @@
 
 The Typescript (Deno) Connector allows a running connector to be inferred from a Typescript file (optionally with dependencies).
 
-* https://hasura.io/connectors/typescript-deno
+* [Typescript Deno Connector on the NDC Hub](https://hasura.io/connectors/typescript-deno)
 * [Hasura V3 Documentation](https://hasura.io/docs/3.0)
+* [Hasura CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
+* [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 
 ![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/fb7f4afd-0302-432b-b7ce-3cc7d1f3546b)
 
