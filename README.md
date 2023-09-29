@@ -14,6 +14,7 @@ Useful Links:
 * [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 * [Deno](https://deno.com)
+* [Native Data Connector Specification](https://hasura.github.io/ndc-spec/)
 
 ## Overview
 
