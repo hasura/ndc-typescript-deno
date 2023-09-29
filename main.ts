@@ -56,7 +56,9 @@ console.log(new TextDecoder().decode(stdout));
  * https://deno.land/x/cmd@v1.2.0#action-handler-subcommands
  */
 
-import { program } from 'https://deno.land/x/cmd@v1.2.0'
+import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
+
+const program = new Command("lol");
 
 program
   .command('rm <dir>')
@@ -65,4 +67,6 @@ program
     console.log('remove ' + dir + (cmdObj.recursive ? ' recursively' : ''))
   })
 
-// program.parse(process.argv)
+if(Deno.args.includes('rm')) {
+  program.parse(process.argv.slice(1))
+}
