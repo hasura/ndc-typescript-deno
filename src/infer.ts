@@ -18,20 +18,25 @@ function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) =
   return result;
 }
 
-export function programInfo(filename: string): any {
-  const vendorFilePath = './vendor/import_map.json';
+export function programInfo(filename: string, vendor_arg?: string): any {
+  const vendorPath = vendor_arg || './vendor';
+  const vendorPathResolved = resolve(vendorPath);
+  const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
 
-  if (existsSync(vendorFilePath)) {
-    const importString = Deno.readTextFileSync(vendorFilePath);
+  if (existsSync(importMapPath)) {
+    const importString = Deno.readTextFileSync(importMapPath);
     const vendorMap = JSON.parse(importString);
     pathsMap = mapObject(vendorMap.imports, (k: string, v: string) => {
       if(/\.ts$/.test(k)) {
-        return [k, [ v.replace(/./, './vendor') ]];
+        return [k, [ v.replace(/./, vendorPath) ]];
       } else {
-        return [k.replace(/$/,'*'), [ v.replace(/./, './vendor').replace(/$/, '*') ]];
+        return [k.replace(/$/,'*'), [ v.replace(/./, vendorPath).replace(/$/, '*') ]];
       }
     });
+  } else {
+    console.error(`Couldn't find import map: ${importMapPath}`);
+    Deno.exit(1);
   }
 
   const pathname = new URL('', import.meta.url).pathname;
@@ -58,23 +63,24 @@ export function programInfo(filename: string): any {
 
   // https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
   if (diagnostics.length) {
-    let fail = false;
+    let fatal = 0;
     console.error(`There were ${diagnostics.length} diagnostic errors.`);
     diagnostics.forEach(diagnostic => {
       if (diagnostic.file) {
-        if (! /^vendor\//.test(diagnostic.file.fileName)) {
-          fail = true;
+        if (! resolve(diagnostic.file.fileName).startsWith(vendorPathResolved)) {
+          fatal++;
         }
         const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
         console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
       } else {
         console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
-        fail = true;
+        fatal++;
       }
     });
 
-    if(fail) {
+    if(fatal > 0) {
+      console.error(`Fatal errors: ${fatal}`);
       Deno.exit(1);
     }
   }
@@ -167,8 +173,15 @@ export function programInfo(filename: string): any {
   }
 
   for (const src of program.getSourceFiles()) {
-    if (src.isDeclarationFile) continue;
-    if (resolve(src.fileName) != resolve(filename)) continue;
+    if (src.isDeclarationFile) {
+      console.error(`Skipping analysis of declaration source: ${src.fileName}`);
+      continue;
+    }
+
+    if (resolve(src.fileName) != resolve(filename)) {
+      console.error(`Skipping analysis of source with resolve inconsistency: ${src.fileName}`);
+      continue;
+    }
 
     ts.forEachChild(src, (node) => {
       if (ts.isFunctionDeclaration(node)) {

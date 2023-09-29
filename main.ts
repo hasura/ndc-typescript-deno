@@ -16,7 +16,7 @@
  * [ ] File-reading library
  * [ ] Have local dev supported by `deno --watch`
  * [x] Seperate infer command for convenience
- * 
+ *     --vendor flag for explicit vendor location
  */
 
 /**
@@ -64,10 +64,11 @@ import { programInfo } from './src/infer.ts'
 
 program
   .command('infer <entrypoint>')
-  .action(function (entrypoint, _cmdObj) {
-    const output = programInfo(entrypoint);
+  .option('-v, --vendor <path>', 'Vendor location (optional)')
+  .action(function (entrypoint, cmdObj) {
+    const output = programInfo(entrypoint, cmdObj.vendor);
     console.log(JSON.stringify(output));
-});
+  });
 
 program.parse(Deno.args);
 
