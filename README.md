@@ -13,6 +13,7 @@ Useful Links:
 * [Hasura CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
 * [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
+* [Deno](https://deno.com)
 
 ## Overview
 
@@ -34,6 +35,8 @@ It is recommended that you:
 * Install the [connector plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * Install [VSCode](https://code.visualstudio.com)
 * Install the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
+* Optionally install [Deno](https://deno.com)
+* Optionally install the [VSCode Deno Extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno)
 
 ## Typescript Functions Format
 
@@ -103,13 +106,9 @@ You will need:
 
 * [V3 CLI](https://github.com/hasura/v3-cli) (With Logged in Session)
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
-* A value to use with `SERVICE_TOKEN_SECRET`
-* A configuration file
-* a typescript sources directory
-
-```
---volume ./my_functions_directory:/functions
-```
+* (Optionally) A value to use with `SERVICE_TOKEN_SECRET`
+* A configuration file containing `{}`
+* a typescript sources directory. E.g. `--volume ./my_functions_directory:/functions`
 
 Create the connector:
 
@@ -118,22 +117,22 @@ hasura3 connector create my-cool-connector:v1 \
   --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \
   --config-file <(echo '{}') \
   --volume ./functions:/functions \
-  --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN
+  --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN # (optional)
 ```
 
 *Note: Even though you can use the "main" branch to deploy the latest connector features, see the [Hasura Connector Hub](https://hasura.io/connectors/typescript-deno) for verified release tags*
 
-Monitor the deployment status by name:
+Monitor the deployment status by name - This will indicate in-progress, complete, or failed status:
 
 > hasura connector status my-cool-connector:v1
 
-List your connector with its deployed URL:
+List all your connectors with their deployed URLs:
 
 > hasura connector list
+ 
+View logs from your running connector:
 
-```
-my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
-```
+> hasura connector logs my-cool-connector:v1
 
 ## Usage
 
@@ -204,6 +203,39 @@ auth:
   token:
     valueFromSecret: CONNECTOR_TOKEN
 ```
+
+## Debugging Issues
+
+Errors may arrise from any of the following:
+
+* Dependency errors in your functions
+* Type errors in your functions
+* Implementation errors in your functions
+* Invalid connector configuration
+* Invalid project metadata
+* Connector Deployment Failure
+* Misconfigured project authentication
+* Misconfigured service authentication
+* Insufficient query permissions
+* Invalid queries
+
+For a botton-up debugging approach - First check your functions:
+
+* Run `deno check` on your functions to determine if there are any obvious errors
+* Write a `deno test` harness to ensure that your functions are correctly implemented
+
+Then check your connector:
+
+* Check that the connctor deployed successfully with `hasura3 connector status my-cool-connector:v1`
+* Check the build/runtime logs of your connector with `hasura3 connector logs my-cool-connector:v1`
+
+Then check your project:
+
+* Ensure that your metadata and project build were successful
+
+Then check end-to-end integration:
+
+* Run test queries and view the connector logs to ensure that your queries are propagating correctly
 
 
 ## Limitations
