@@ -12,18 +12,28 @@ Useful Links:
 * [Hasura V3 Documentation](https://hasura.io/docs/3.0)
 * [Hasura CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
 * [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
+* [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 
 ## Overview
 
 The connector runs in the following manner:
 
-* The typescript sources are assembled (with `index.ts` acting as your interface definition)
-* Dependencies are fetched into a vendor directory
-* Inference is performed and output to schema.json
-* The functions are served via HTTP locally in the background with the Deno runtime
-* The connector is started in the foreground responding to requests
+* Typescript sources are assembled (with `index.ts` acting as your interface definition)
+* Dependencies are fetched
+* Inference is performed and made available via the `/schema` endpoint
+* Functions are served via the connector protocol
 
-It assumes that dependencies are specified in accordance with [Deno](https://deno.com) conventions.
+Note: The Deno runtime is used and this connector assumes that dependencies are specified in accordance with [Deno](https://deno.com) conventions.
+
+## Before you get Started
+
+It is recommended that you:
+
+* Install the [Hasura3 CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
+* Log in via the CLI
+* Install the [connector plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
+* Install [VSCode](https://code.visualstudio.com)
+* Install the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 
 ## Typescript Functions Format
 
