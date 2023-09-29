@@ -15,7 +15,7 @@
  * [ ] Subprocess library
  * [ ] File-reading library
  * [ ] Have local dev supported by `deno --watch`
- * [ ] Seperate infer command for convenience
+ * [x] Seperate infer command for convenience
  * 
  */
 
