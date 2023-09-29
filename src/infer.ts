@@ -18,7 +18,7 @@ function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) =
   return result;
 }
 
-function programInfo(filename: string) {
+export function programInfo(filename: string): any {
   const vendorFilePath = './vendor/import_map.json';
   let pathsMap: {[key: string]: Array<string>} = {};
 
@@ -225,15 +225,3 @@ function programInfo(filename: string) {
 
 }
 
-// TODO: Should we package this up in an array?
-// TODO: Should we have error information returned in-band?
-// E.g. output = `{ errors: [], programs: [{ name: "input.ts", errors: []}]}`
-Deno.args.forEach((arg) => {
-  const output = programInfo(arg);
-  console.log(JSON.stringify(output));
-})
-
-if(Deno.args.length < 1) {
-  console.error(`Usage: deno run --allow-env --allow-sys --allow-read --allow-net infer.ts SOURCE.ts*`);
-  Deno.exit(1);
-}
