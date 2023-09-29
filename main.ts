@@ -46,7 +46,7 @@ const { code, stdout, stderr } = await command.output();
 
 console.assert(code === 0);
 console.assert("world\n" === new TextDecoder().decode(stderr));
-// console.log(new TextDecoder().decode(stdout));
+console.assert("hello\n" === new TextDecoder().decode(stdout));
 
 /**
  * Command line arguments:
