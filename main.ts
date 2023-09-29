@@ -18,7 +18,6 @@
  * 
  */
 
-
 /**
  * Importing TS SDK Dependency
  * https://github.com/hasura/ndc-sdk-typescript/tree/main
@@ -65,8 +64,21 @@ program
   .option('-r, --recursive', 'Remove recursively')
   .action(function (dir, cmdObj) {
     console.log('remove ' + dir + (cmdObj.recursive ? ' recursively' : ''))
-  })
+  });
 
 if(Deno.args.includes('rm')) {
-  program.parse(process.argv.slice(1))
+  program.parse(process.argv.slice(1));
 }
+
+/**
+ * Deno watcher:
+ * https://medium.com/deno-the-complete-reference/denos-built-in-watcher-1d91cb976349
+ * 
+ * Example:
+ * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
+ */
+
+/**
+ * NPM imports:
+ * https://docs.deno.com/runtime/manual/node/npm_specifiers
+ */
