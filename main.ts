@@ -15,6 +15,7 @@
  * [ ] Subprocess library
  * [ ] File-reading library
  * [ ] Have local dev supported by `deno --watch`
+ * [x] Dynamic invocation of functions from index module
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
  */
@@ -72,44 +73,80 @@ program
 
 import * as index from './index.ts';
 
-function errors(inner: (req: Request) => Response): (req: Request) => Response {
+function errors<X>(schema: X, inner: (schema: X, req: Request) => Response): (req: Request) => Response {
   return (req: Request) => {
     try {
-      return inner(req);
+      return inner(schema, req);
     } catch(e) {
       return new Response(e, {status: 500});
     }
   };
 }
 
-type IK = keyof typeof index;
-
-function server(req: Request): Response {
-  console.log(req);
-  const { pathname: path, searchParams: query } = new URL(req.url);
-  if(!['','/','/call'].includes(path)) {
-    throw new Error(`Invalid path [${path}]. Please use POST /call.`);
-  }
+function invoke(query: URLSearchParams) {
   const ident = query.get('function');
   if(typeof ident != 'string') {
     throw new Error(`Please provide a "function" parameter.`);
   }
+
+  type IK = keyof typeof index;
   const func = index[ident as IK] as any;
   const result = func();
   return new Response(result);
+}
+
+function server(schema: string, req: Request): Response {
+  console.log(req); // TODO: Remove
+  const { pathname: path, searchParams: query } = new URL(req.url);
+
+  switch(path) {
+    case '':
+    case '/':
+    case '/call':
+      return invoke(query);
+    case '/schema':
+      return new Response(schema, {
+        headers: {
+            'content-type': 'application/json'
+        }});
+    default:
+      throw new Error(`Invalid path [${path}]. Please use POST /call.`);
+  }
+}
+
+function getSchema(cmdObj: any): string {
+  switch(cmdObj.schemaMode) {
+    case 'READ': {
+      console.error(`Reading existing schema: ${cmdObj.schemaLocation}`);
+      const bytes = Deno.readFileSync(cmdObj.schemaLocation);
+      const decoder = new TextDecoder("utf-8");
+      const decoded = decoder.decode(bytes);
+      const _ = JSON.parse(decoded); // Test that it is valid JSON
+      return decoded;
+    }
+    case 'INFER':
+      throw new Error('TODO: Implement schema infer');
+    default:
+      throw new Error('Invalid --schema-mode');
+  }
+}
+
+function startServer(cmdObj: any) {
+  const schema = getSchema(cmdObj);
+  console.error("Running server");
+  Deno.serve(
+    cmdObj,
+    errors(schema, server)
+  );
 }
 
 program
   .command('serve')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
-  .action(function (cmdObj) {
-    console.error("Running server");
-    Deno.serve(
-      {port: cmdObj.port, hostname: cmdObj.hostname},
-      errors(server)
-    );
-  });
+  .option('--schema-mode <mode>', 'mode: READ|INFER (default), location: Where to read or write to.', undefined, 'INFER')
+  .option('--schema-location <location>', 'location: Where to read or write the schema from or to.')
+  .action(startServer);
 
 program.parse(Deno.args);
 
