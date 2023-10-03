@@ -2,7 +2,7 @@
 /**
  * TODO: 
  * 
- * [ ] Create PR
+ * [x] Create PR
  * [ ] Share SDK issues with Benoit
  * [ ] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
  * [ ] Convert server.ts to connector protocol
@@ -16,7 +16,7 @@
  * [ ] File-reading library
  * [ ] Have local dev supported by `deno --watch`
  * [x] Seperate infer command for convenience
- *     --vendor flag for explicit vendor location
+ * [x] --vendor flag for explicit vendor location
  */
 
 /**
