@@ -19,7 +19,8 @@
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
  * [ ] Reimplement async dispatch
- * [ ] Reimplement arg position schmea correlation
+ * [ ] Reimplement position derivation from schema
+ * [x] Reimplement arg position schmea correlation
  */
 
 /**
@@ -222,7 +223,8 @@ program.parse(Deno.args);
  * 
  * Example:
  * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
- * > deno run --allow-run --allow-net --allow-read --allow-env --watch --check main.ts serve
+ * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve
+ * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve --schema-mode INFER --schema-location scratch/schema.json --vendor scratch/vendor
  */
 
 /**
