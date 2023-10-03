@@ -80,30 +80,56 @@ program
  */
 import * as index from './index.ts';
 
-function catchErrors<X>(schema: X, inner: (schema: X, req: Request) => Promise<Response>): (req: Request) => Promise<Response> {
-  return async (req: Request) => {
-    try {
-      return await inner(schema, req);
-    } catch(e) {
-      return new Response(e, {status: 500});
-    }
-  };
-}
-
 /**
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
  * @returns 
  */
-function invoke(payload: any) {
-  const ident = payload['function'];
-  if(typeof ident != 'string') {
-    throw new Error(`Please provide a "function" parameter.`);
-  }
-
+function invoke(positions: FunctionPositions, payload: any) {
+  const ident = payload.function;
   type IK = keyof typeof index;
   const func = index[ident as IK] as any;
-  const result = func();
+  const args = reposition(positions, payload);
+  const result = func.apply(null, args);
   return new Response(result);
+}
+
+type Struct<X> = {
+  [key: string]: X
+}
+
+type Payload = {
+  function: string,
+  args: Struct<any>
+}
+
+type FunctionPositions = Struct<Struct<number>>
+
+function reposition(functions: FunctionPositions, payload: Payload): Array<any> {
+  const keys = Object.keys(payload.args);
+
+  // Can return early if there are less then 2 args
+  // Might be good to find issues with schema alignment earlier though.
+  if(keys.length < 2) {
+    return Object.values(payload.args);
+  }
+
+  const positions = functions[payload.function];
+  if(! positions) {
+    throw new Error(`Couldn't find function ${payload.function} in schema.`);
+  }
+  const sortedKeys = keys.sort((k1, k2) => {
+    const p1 = positions[k1]
+    if(!p1) {
+      throw new Error(`Couldn't find argument ${payload.function}.${k1} in schema.`);
+    }
+    const p2 = positions[k2]
+    if(!p2) {
+      throw new Error(`Couldn't find argument ${payload.function}.${k2} in schema.`);
+    }
+    return p1-p2;
+  });
+  const sorted = sortedKeys.map(k => payload.args[k]);
+  return sorted;
 }
 
 async function serve(schema: string, req: Request): Promise<Response> {
@@ -124,7 +150,7 @@ async function serve(schema: string, req: Request): Promise<Response> {
   // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
     case '/call':
-      return invoke(body);
+      return invoke({}, body); // TODO: Provide position information here.
     case '/schema':
       return new Response(schema, {
         headers: {
@@ -169,7 +195,13 @@ function startServer(cmdObj: any) {
   console.error("Running server");
   Deno.serve(
     cmdObj,
-    catchErrors(schema, serve)
+    async (req: Request) => {
+      try {
+        return await serve(schema, req);
+      } catch(e) {
+        return new Response(e, {status: 500});
+      }
+    }
   );
 }
 
