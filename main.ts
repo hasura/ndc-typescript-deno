@@ -121,9 +121,8 @@ async function serve(schema: string, req: Request): Promise<Response> {
     }
   })();
 
+  // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
-    case '':
-    case '/':
     case '/call':
       return invoke(body);
     case '/schema':
@@ -132,7 +131,7 @@ async function serve(schema: string, req: Request): Promise<Response> {
             'content-type': 'application/json'
         }});
     default:
-      throw new Error(`Invalid path [${path}]. Requests should be: POST /call.`);
+      throw new Error(`Invalid path [${path}]. Requests should be: GET /schema, or POST /call {function, args}.`);
   }
 }
 
