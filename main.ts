@@ -2,7 +2,7 @@
 /**
  * TODO: 
  * 
- * [x] Create PR
+ * [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
  * [ ] Share SDK issues with Benoit
  * [ ] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
  * [ ] Convert server.ts to connector protocol
@@ -70,6 +70,47 @@ program
     console.log(JSON.stringify(output));
   });
 
+import * as index from './index.ts';
+
+function errors(inner: (req: Request) => Response): (req: Request) => Response {
+  return (req: Request) => {
+    try {
+      return inner(req);
+    } catch(e) {
+      return new Response(e, {status: 500});
+    }
+  };
+}
+
+type IK = keyof typeof index;
+
+function server(req: Request): Response {
+  console.log(req);
+  const { pathname: path, searchParams: query } = new URL(req.url);
+  if(!['','/','/call'].includes(path)) {
+    throw new Error(`Invalid path [${path}]. Please use POST /call.`);
+  }
+  const ident = query.get('function');
+  if(typeof ident != 'string') {
+    throw new Error(`Please provide a "function" parameter.`);
+  }
+  const func = index[ident as IK] as any;
+  const result = func();
+  return new Response(result);
+}
+
+program
+  .command('serve')
+  .option('-p, --port <INT>', 'Port to listen on.')
+  .option('--hostname <host>', 'Port to listen on.')
+  .action(function (cmdObj) {
+    console.error("Running server");
+    Deno.serve(
+      {port: cmdObj.port, hostname: cmdObj.hostname},
+      errors(server)
+    );
+  });
+
 program.parse(Deno.args);
 
 /**
@@ -78,6 +119,7 @@ program.parse(Deno.args);
  * 
  * Example:
  * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
+ * > deno run --allow-run --allow-net --allow-read --allow-env --watch --check main.ts serve
  */
 
 /**
