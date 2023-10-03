@@ -3,18 +3,18 @@
  * TODO: 
  * 
  * [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
- * [ ] Share SDK issues with Benoit
+ * [x] Share SDK issues with Benoit
  * [ ] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
  * [ ] Convert server.ts to connector protocol
  * [ ] Remove rust harness
  * [ ] Update docker to leverage deno implementation
  * [ ] Do start-time inference on functions
- * [ ] Have schema cache respecting flag --schema: /schema.json - Creates if missing, uses if present
+ * [x] Have schema cache respecting flag --schema: /schema.json - Creates if missing, uses if present
  * [ ] Manage src locations better
- * [ ] CMD parsing library
- * [ ] Subprocess library
- * [ ] File-reading library
- * [ ] Have local dev supported by `deno --watch`
+ * [x] CMD parsing library
+ * [!] Subprocess library (Not required)
+ * [x] File-reading library (Builtin)
+ * [x] Have local dev supported by `deno --watch`
  * [x] Dynamic invocation of functions from index module
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
@@ -116,6 +116,9 @@ function server(schema: string, req: Request): Response {
 
 function getSchema(cmdObj: any): string {
   switch(cmdObj.schemaMode) {
+    /**
+     * The READ option is available in case the user wants to pre-cache their schema during development.
+     */
     case 'READ': {
       console.error(`Reading existing schema: ${cmdObj.schemaLocation}`);
       const bytes = Deno.readFileSync(cmdObj.schemaLocation);
