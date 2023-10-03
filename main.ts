@@ -104,7 +104,7 @@ type Payload = {
   args: Struct<any>
 }
 
-type FunctionPositions = Struct<Struct<number>>
+type FunctionPositions = Struct<Array<string>>
 
 type FunctionWithPosition = {
   name: string,
@@ -121,11 +121,17 @@ type SchemaWithPositions = {
 function findPositions(schema: SchemaWithPositions): FunctionPositions {
   const functions: FunctionPositions = {};
   for(const f of schema.functions.concat(schema.procedures)) {
-    const result: Struct<number> = {};
-    for (const [k,v] of Object.entries(f.arguments)) {
-      result[k] = v.position;
-    }
-    functions[f.name] = result;
+    functions[f.name] = Object.keys(f.arguments).sort((k1,k2) => {
+      const p1 = f.arguments[k1]?.position;
+      if(typeof p1 != 'number') {
+        throw new Error(`Argument ${f.name}.${k1}'s position should be a number.`);
+      }
+      const p2 = f.arguments[k2]?.position;
+      if(typeof p2 != 'number') {
+        throw new Error(`Argument ${f.name}.${k2}'s position should be a number.`);
+      }
+      return p1-p2;
+    });
   }
   return functions;
 }
@@ -144,18 +150,8 @@ function reposition(functions: FunctionPositions, payload: Payload): Array<any> 
   if(!positions) {
     throw new Error(`Couldn't find function ${payload.function} in schema.`);
   }
-  const sortedKeys = keys.sort((k1, k2) => {
-    const p1 = positions[k1]
-    if(typeof p1 != 'number') {
-      throw new Error(`Couldn't find argument ${payload.function}.${k1} in schema.`);
-    }
-    const p2 = positions[k2]
-    if(typeof p2 != 'number') {
-      throw new Error(`Couldn't find argument ${payload.function}.${k2} in schema.`);
-    }
-    return p1-p2;
-  });
-  const sorted = sortedKeys.map(k => payload.args[k]);
+
+  const sorted = positions.map(k => payload.args[k]);
   return sorted;
 }
 
