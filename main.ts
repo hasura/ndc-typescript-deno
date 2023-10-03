@@ -21,6 +21,7 @@
  * [ ] Reimplement async dispatch
  * [ ] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
+ * [ ] Provide additional exception detail for anticipated failures
  */
 
 /**
@@ -105,6 +106,30 @@ type Payload = {
 
 type FunctionPositions = Struct<Struct<number>>
 
+type FunctionWithPosition = {
+  name: string,
+  arguments: Struct< { position: number } >
+}
+
+type FunctionsWithPostions = Array<FunctionWithPosition>;
+
+type SchemaWithPositions = {
+  functions: FunctionsWithPostions,
+  procedures: FunctionsWithPostions,
+}
+
+function findPositions(schema: SchemaWithPositions): FunctionPositions {
+  const functions: FunctionPositions = {};
+  for(const f of schema.functions.concat(schema.procedures)) {
+    const result: Struct<number> = {};
+    for (const [k,v] of Object.entries(f.arguments)) {
+      result[k] = v.position;
+    }
+    functions[f.name] = result;
+  }
+  return functions;
+}
+
 function reposition(functions: FunctionPositions, payload: Payload): Array<any> {
   const keys = Object.keys(payload.args);
 
@@ -115,16 +140,17 @@ function reposition(functions: FunctionPositions, payload: Payload): Array<any> 
   }
 
   const positions = functions[payload.function];
-  if(! positions) {
+
+  if(!positions) {
     throw new Error(`Couldn't find function ${payload.function} in schema.`);
   }
   const sortedKeys = keys.sort((k1, k2) => {
     const p1 = positions[k1]
-    if(!p1) {
+    if(typeof p1 != 'number') {
       throw new Error(`Couldn't find argument ${payload.function}.${k1} in schema.`);
     }
     const p2 = positions[k2]
-    if(!p2) {
+    if(typeof p2 != 'number') {
       throw new Error(`Couldn't find argument ${payload.function}.${k2} in schema.`);
     }
     return p1-p2;
@@ -133,8 +159,7 @@ function reposition(functions: FunctionPositions, payload: Payload): Array<any> 
   return sorted;
 }
 
-async function serve(schema: string, req: Request): Promise<Response> {
-  console.log(req); // TODO: Remove
+async function respond(positions: FunctionPositions, schema: string, req: Request): Promise<Response> {
 
   const { pathname: path } = new URL(req.url);
   const body = await (async () => {
@@ -151,7 +176,7 @@ async function serve(schema: string, req: Request): Promise<Response> {
   // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
     case '/call':
-      return invoke({}, body); // TODO: Provide position information here.
+      return invoke(positions, body);
     case '/schema':
       return new Response(schema, {
         headers: {
@@ -162,7 +187,7 @@ async function serve(schema: string, req: Request): Promise<Response> {
   }
 }
 
-function getSchema(cmdObj: any): string {
+function getSchema(cmdObj: any): SchemaWithPositions {
   switch(cmdObj.schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
@@ -172,19 +197,18 @@ function getSchema(cmdObj: any): string {
       const bytes = Deno.readFileSync(cmdObj.schemaLocation);
       const decoder = new TextDecoder("utf-8");
       const decoded = decoder.decode(bytes);
-      const _ = JSON.parse(decoded); // Test that it is valid JSON
-      return decoded;
+      return JSON.parse(decoded);
     }
     case 'INFER': {
       console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
-      const output = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
-      const schemaString = JSON.stringify(output);
+      const schema = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
+      const schemaString = JSON.stringify(schema);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         // NOTE: Using sync functions should be ok since they're run on startup.
         Deno.writeTextFileSync(schemaLocation, schemaString);
       }
-      return schemaString;
+      return schema;
     }
     default:
       throw new Error('Invalid --schema-mode');
@@ -193,12 +217,14 @@ function getSchema(cmdObj: any): string {
 
 function startServer(cmdObj: any) {
   const schema = getSchema(cmdObj);
+  const schemaString = JSON.stringify(schema);
+  const positions = findPositions(schema as any as SchemaWithPositions);
   console.error("Running server");
   Deno.serve(
     cmdObj,
     async (req: Request) => {
       try {
-        return await serve(schema, req);
+        return await respond(positions, schemaString, req);
       } catch(e) {
         return new Response(e, {status: 500});
       }
