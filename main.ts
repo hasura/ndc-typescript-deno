@@ -128,8 +128,12 @@ function getSchema(cmdObj: any): string {
       const _ = JSON.parse(decoded); // Test that it is valid JSON
       return decoded;
     }
-    case 'INFER':
-      throw new Error('TODO: Implement schema infer');
+    case 'INFER': {
+      console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
+      const output = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
+      const string = JSON.stringify(output);
+      return string;
+    }
     default:
       throw new Error('Invalid --schema-mode');
   }
@@ -148,8 +152,9 @@ program
   .command('serve')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
-  .option('--schema-mode <mode>', 'mode: READ|INFER (default), location: Where to read or write to.', undefined, 'INFER')
-  .option('--schema-location <location>', 'location: Where to read or write the schema from or to.')
+  .option('--schema-mode <mode>', 'READ|INFER (default).', undefined, 'INFER')
+  .option('--schema-location <location>', 'Where to read or write the schema from or to.')
+  .option('--vendor <location>', 'Where to find the associated vendor files and import map.')
   .action(startServer);
 
 program.parse(Deno.args);
