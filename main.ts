@@ -18,6 +18,8 @@
  * [x] Dynamic invocation of functions from index module
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
+ * [ ] Reimplement async dispatch
+ * [ ] Reimplement arg position schmea correlation
  */
 
 /**
@@ -71,20 +73,29 @@ program
     console.log(JSON.stringify(output));
   });
 
+/**
+ * NOTE: This could pose an issue when calling this program via Deno URL from CLI.
+ *       Depending on how local references are resolved it may look relative to the URL.
+ *       Having the user specify an explicit import map to capture this import may be a workaround.
+ */
 import * as index from './index.ts';
 
-function errors<X>(schema: X, inner: (schema: X, req: Request) => Response): (req: Request) => Response {
-  return (req: Request) => {
+function catchErrors<X>(schema: X, inner: (schema: X, req: Request) => Promise<Response>): (req: Request) => Promise<Response> {
+  return async (req: Request) => {
     try {
-      return inner(schema, req);
+      return await inner(schema, req);
     } catch(e) {
       return new Response(e, {status: 500});
     }
   };
 }
 
-function invoke(query: URLSearchParams) {
-  const ident = query.get('function');
+/**
+ * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
+ * @returns 
+ */
+function invoke(payload: any) {
+  const ident = payload['function'];
   if(typeof ident != 'string') {
     throw new Error(`Please provide a "function" parameter.`);
   }
@@ -95,23 +106,33 @@ function invoke(query: URLSearchParams) {
   return new Response(result);
 }
 
-function server(schema: string, req: Request): Response {
+async function serve(schema: string, req: Request): Promise<Response> {
   console.log(req); // TODO: Remove
-  // TODO: Accept params from POST Body
-  const { pathname: path, searchParams: query } = new URL(req.url);
+
+  const { pathname: path } = new URL(req.url);
+  const body = await (async () => {
+    switch(req.method) {
+      case 'POST':
+        return await req.json();
+      case 'GET':
+        return {};
+      default:
+        throw new Error(`Invalid request method: ${req.method}`);
+    }
+  })();
 
   switch(path) {
     case '':
     case '/':
     case '/call':
-      return invoke(query);
+      return invoke(body);
     case '/schema':
       return new Response(schema, {
         headers: {
             'content-type': 'application/json'
         }});
     default:
-      throw new Error(`Invalid path [${path}]. Please use POST /call.`);
+      throw new Error(`Invalid path [${path}]. Requests should be: POST /call.`);
   }
 }
 
@@ -131,8 +152,13 @@ function getSchema(cmdObj: any): string {
     case 'INFER': {
       console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
       const output = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
-      const string = JSON.stringify(output);
-      return string;
+      const schemaString = JSON.stringify(output);
+      const schemaLocation = cmdObj.schemaLocation;
+      if(schemaLocation) {
+        // NOTE: Using sync functions should be ok since they're run on startup.
+        Deno.writeTextFileSync(schemaLocation, schemaString);
+      }
+      return schemaString;
     }
     default:
       throw new Error('Invalid --schema-mode');
@@ -144,7 +170,7 @@ function startServer(cmdObj: any) {
   console.error("Running server");
   Deno.serve(
     cmdObj,
-    errors(schema, server)
+    catchErrors(schema, serve)
   );
 }
 
@@ -152,8 +178,8 @@ program
   .command('serve')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
-  .option('--schema-mode <mode>', 'READ|INFER (default).', undefined, 'INFER')
-  .option('--schema-location <location>', 'Where to read or write the schema from or to.')
+  .option('--schema-mode <mode>', 'READ|INFER (default). INFER will write the schema if --schema-location is also set.', undefined, 'INFER')
+  .option('--schema-location <location>', 'Where to read or write the schema from or to depending on mode.')
   .option('--vendor <location>', 'Where to find the associated vendor files and import map.')
   .action(startServer);
 
