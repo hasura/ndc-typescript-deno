@@ -97,6 +97,7 @@ function invoke(query: URLSearchParams) {
 
 function server(schema: string, req: Request): Response {
   console.log(req); // TODO: Remove
+  // TODO: Accept params from POST Body
   const { pathname: path, searchParams: query } = new URL(req.url);
 
   switch(path) {
