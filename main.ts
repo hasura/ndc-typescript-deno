@@ -22,6 +22,8 @@
  * [ ] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
  * [ ] Provide additional exception detail for anticipated failures
+ * [x] Depend on TS SDK
+ * [ ] Split up entrypoint sources
  */
 
 /**
@@ -210,6 +212,10 @@ function getSchema(cmdObj: any): SchemaWithPositions {
       throw new Error('Invalid --schema-mode');
   }
 }
+
+import * as ndc_sdk from 'npm:@hasura/ndc-sdk-typescript'; // TODO: Use a tagged version of this
+
+
 
 function startServer(cmdObj: any) {
   const schema = getSchema(cmdObj);
