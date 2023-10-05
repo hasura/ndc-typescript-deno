@@ -67,7 +67,7 @@ import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
 
 const program = new Command("typescript-connector");
 
-import { programInfo } from './src/infer.ts'
+import { ProgramInfo, programInfo } from './src/infer.ts'
 
 program
   .command('infer <entrypoint>')
@@ -88,7 +88,7 @@ import * as index from './index.ts';
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
  * @returns 
  */
-function invoke(positions: FunctionPositions, payload: any) {
+function invoke(positions: FunctionPositions, payload: Payload<unknown>) {
   const ident = payload.function;
   type IK = keyof typeof index;
   const func = index[ident as IK] as any;
@@ -97,20 +97,16 @@ function invoke(positions: FunctionPositions, payload: any) {
   return new Response(result);
 }
 
-type Struct<X> = {
-  [key: string]: X
-}
-
-type Payload = {
+type Payload<X> = {
   function: string,
-  args: Struct<any>
+  args: Record<string, X>
 }
 
-type FunctionPositions = Struct<Array<string>>
+type FunctionPositions = Record<string, Array<string>>
 
 type FunctionWithPosition = {
   name: string,
-  arguments: Struct< { position: number } >
+  arguments: Record<string, { position: number } >
 }
 
 type FunctionsWithPostions = Array<FunctionWithPosition>;
@@ -120,25 +116,7 @@ type SchemaWithPositions = {
   procedures: FunctionsWithPostions,
 }
 
-function findPositions(schema: SchemaWithPositions): FunctionPositions {
-  const functions: FunctionPositions = {};
-  for(const f of schema.functions.concat(schema.procedures)) {
-    functions[f.name] = Object.keys(f.arguments).sort((k1,k2) => {
-      const p1 = f.arguments[k1]?.position;
-      if(typeof p1 != 'number') {
-        throw new Error(`Argument ${f.name}.${k1}'s position should be a number.`);
-      }
-      const p2 = f.arguments[k2]?.position;
-      if(typeof p2 != 'number') {
-        throw new Error(`Argument ${f.name}.${k2}'s position should be a number.`);
-      }
-      return p1-p2;
-    });
-  }
-  return functions;
-}
-
-function reposition(functions: FunctionPositions, payload: Payload): Array<any> {
+function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
   const keys = Object.keys(payload.args);
 
   // Can return early if there are less then 2 args
@@ -185,12 +163,15 @@ async function respond(positions: FunctionPositions, schema: string, req: Reques
   }
 }
 
-function getSchema(cmdObj: any): SchemaWithPositions {
+function getInfo(cmdObj: ServeOptions): ProgramInfo {
   switch(cmdObj.schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
      */
     case 'READ': {
+      if(!cmdObj.schemaLocation) {
+        throw new Error('--schema-location is require if using --schema-mode READ');
+      }
       console.error(`Reading existing schema: ${cmdObj.schemaLocation}`);
       const bytes = Deno.readFileSync(cmdObj.schemaLocation);
       const decoder = new TextDecoder("utf-8");
@@ -199,14 +180,14 @@ function getSchema(cmdObj: any): SchemaWithPositions {
     }
     case 'INFER': {
       console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
-      const schema = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
-      const schemaString = JSON.stringify(schema);
+      const info = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
+        const infoString = JSON.stringify(info);
         // NOTE: Using sync functions should be ok since they're run on startup.
-        Deno.writeTextFileSync(schemaLocation, schemaString);
+        Deno.writeTextFileSync(schemaLocation, infoString);
       }
-      return schema;
+      return info;
     }
     default:
       throw new Error('Invalid --schema-mode');
@@ -215,12 +196,10 @@ function getSchema(cmdObj: any): SchemaWithPositions {
 
 import * as ndc_sdk from 'npm:@hasura/ndc-sdk-typescript'; // TODO: Use a tagged version of this
 
-
-
-function startServer(cmdObj: any) {
-  const schema = getSchema(cmdObj);
-  const schemaString = JSON.stringify(schema);
-  const positions = findPositions(schema as any as SchemaWithPositions);
+function startServer(cmdObj: ServeOptions) {
+  const info = getInfo(cmdObj);
+  const schemaString = JSON.stringify(info.schema);
+  const positions = info.positions;
   console.error("Running server");
   Deno.serve(
     cmdObj,
@@ -232,6 +211,14 @@ function startServer(cmdObj: any) {
       }
     }
   );
+}
+
+type ServeOptions = {
+  port?: number,
+  hostname?: string,
+  schemaMode: 'READ' | 'INFER',
+  schemaLocation?: string,
+  vendor?: string
 }
 
 program

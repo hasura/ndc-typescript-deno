@@ -1,9 +1,18 @@
 import ts, { FunctionDeclaration, SyntaxKind } from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
+import { FunctionInfo, ScalarType, SchemaResponse } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
 type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
 
+export type FunctionPositions = Record<string, Array<string>>
+
+export type ProgramInfo = {
+  schema: SchemaResponse,
+  positions: FunctionPositions
+}
+
+// TODO: Specialise the any to ty.Type or something similar
 function is_struct(ty: any): boolean {
   return (ty?.members?.size || 0) > 0;
 }
@@ -18,7 +27,7 @@ function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) =
   return result;
 }
 
-export function programInfo(filename: string, vendor_arg?: string): any {
+export function programInfo(filename: string, vendor_arg?: string): ProgramInfo {
   const vendorPath = vendor_arg || './vendor';
   const vendorPathResolved = resolve(vendorPath);
   const importMapPath = `${vendorPath}/import_map.json`;
@@ -87,25 +96,22 @@ export function programInfo(filename: string, vendor_arg?: string): any {
 
   const checker = program.getTypeChecker();
 
-  type Ops = {
+  // TODO: Use ReadOnly?
+  const no_ops: ScalarType = {
     aggregate_functions: {},
     comparison_operators: {},
     update_operators: {},
   };
 
-  const no_ops: Ops = {
-    aggregate_functions: {},
-    comparison_operators: {},
-    update_operators: {},
-  };
-
-  const schema_response = {
-    scalar_types: {} as {[key: string]: Ops},
-    object_types: {} as {[key: string]: any},
+  const schema_response: SchemaResponse = {
+    scalar_types: {},
+    object_types: {},
     collections: [],
-    functions: [] as any[],
-    procedures: [] as any[],
+    functions: [],
+    procedures: [],
   };
+
+  const positions: FunctionPositions = {};
 
   const scalar_mappings: {[key: string]: string} = {
     "string": "String",
@@ -203,24 +209,27 @@ export function programInfo(filename: string, vendor_arg?: string): any {
         const result_type_name = `${fn_name}_output`;
         const result_type_validated = validate_type(result_type_name, result_type);
 
-        const fn = {
+        const fn: FunctionInfo = {
           name: node.name!.text,
           description: fn_desc,
-          arguments: {} as any,
+          arguments: {},
           result_type: result_type_validated,
         };
 
-        call.parameters.forEach((param, i) => {
+        positions[fn.name] = [];
+
+        call.parameters.forEach((param) => {
           const param_name = param.getName();
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker));
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
-          const param_name_with_index = `${fn_name}_arguments_${param_name}_${i}`;
+          const param_name_with_index = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
           const param_type_validated = validate_type(param_name_with_index, param_type); // E.g. `bio_arguments_username_0`
+
+          positions[fn.name].push(param_name);
 
           fn.arguments[param_name] = {
             description: param_desc,
             type: param_type_validated,
-            position: i,
           }
         });
 
@@ -234,7 +243,11 @@ export function programInfo(filename: string, vendor_arg?: string): any {
 
   }
 
-  return schema_response;
+  const result = {
+    schema: schema_response,
+    positions
+  }
 
+  return result;
 }
 
