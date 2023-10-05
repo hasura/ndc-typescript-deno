@@ -4,11 +4,11 @@
  * 
  * [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
  * [x] Share SDK issues with Benoit
- * [ ] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
+ * [x] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
  * [ ] Convert server.ts to connector protocol
  * [ ] Remove rust harness
  * [ ] Update docker to leverage deno implementation
- * [ ] Do start-time inference on functions
+ * [x] Do start-time inference on functions
  * [x] Have schema cache respecting flag --schema: /schema.json - Creates if missing, uses if present
  * [ ] Manage src locations better
  * [x] CMD parsing library
@@ -19,12 +19,13 @@
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
  * [ ] Reimplement async dispatch
- * [ ] Reimplement position derivation from schema
+ * [x] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
  * [ ] Provide additional exception detail for anticipated failures
  * [x] Depend on TS SDK
  * [x] Remove any
  * [ ] Split up entrypoint sources
+ * [x] Support optional parameters
  */
 
 /**
