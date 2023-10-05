@@ -41,6 +41,7 @@
  * [ ] Deno run from deno.land...
  * [x] Put imports up the top
  * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
+ * [ ] Output usage information when running locally such as connector create command
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
@@ -59,7 +60,7 @@ async function invoke(functions: any, positions: FunctionPositions, payload: Pay
   if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
     result = await result;
   }
-  return new Response(result);
+  return result;
 }
 
 type Payload<X> = {
@@ -100,17 +101,16 @@ async function respond(functions: any, positions: FunctionPositions, schema: str
     }
   })();
 
+  const jsonResponse = { headers: { 'content-type': 'application/json' }};
+
   // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
     case '/call': {
       const result = await invoke(functions, positions, body);
-      return new Response(result);
+      return new Response(JSON.stringify(result), jsonResponse);
     }
     case '/schema':
-      return new Response(schema, {
-        headers: {
-            'content-type': 'application/json'
-        }});
+      return new Response(schema, jsonResponse);
     default:
       throw new Error(`Invalid path [${path}]. Requests should be: GET /schema, or POST /call {function, args}.`);
   }
@@ -167,15 +167,6 @@ async function startServer(cmdObj: ServeOptions) {
   );
 }
 
-type ServeOptions = {
-  functions: string,
-  port?: number,
-  hostname?: string,
-  schemaMode: 'READ' | 'INFER',
-  schemaLocation?: string,
-  vendor?: string
-}
-
 /**
  * The CLI entrypoint into this program.
  * Uses the 'cmd' Deno package.
@@ -190,6 +181,15 @@ program
     const output = programInfo(entrypoint, cmdObj.vendor);
     console.log(JSON.stringify(output));
   });
+
+type ServeOptions = {
+  functions: string,
+  port?: number,
+  hostname?: string,
+  schemaMode: 'READ' | 'INFER',
+  schemaLocation?: string,
+  vendor?: string
+}
 
 // Note: There seems to be a bug in the CMD library where defaults and regexes don't typecheck.
 //       https://github.com/acathur/cmd/issues/6
