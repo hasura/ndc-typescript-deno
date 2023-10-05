@@ -1,7 +1,7 @@
-import ts, { FunctionDeclaration, SyntaxKind } from "npm:typescript@5.1.6";
+import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
-import { FunctionInfo, ScalarType, SchemaResponse } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
 type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
 
@@ -25,6 +25,10 @@ function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) =
     result[k2] = v;
   }
   return result;
+}
+
+function isParameterDeclaration(node: ts.Node | undefined): node is ts.ParameterDeclaration {
+  return node?.kind === ts.SyntaxKind.Parameter;
 }
 
 export function programInfo(filename: string, vendor_arg?: string): ProgramInfo {
@@ -223,14 +227,31 @@ export function programInfo(filename: string, vendor_arg?: string): ProgramInfo 
           const param_name = param.getName();
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker));
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
-          const param_name_with_index = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
-          const param_type_validated = validate_type(param_name_with_index, param_type); // E.g. `bio_arguments_username_0`
+          const type_name = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
+          const param_type_validated = validate_type(type_name, param_type); // E.g. `bio_arguments_username_0`
 
           positions[fn.name].push(param_name);
 
+          // TODO: Creating the structure for optional types should be done by 'validate_type'.
+          //       Perhaps give an 'optional' boolean argument to 'validate_type' constructed in this way for params.
+          function optionalParameterType(): Type {
+            if(param) {
+              for(const declaration of param.getDeclarations() || []) {
+                if(isParameterDeclaration(declaration)) {
+                  if(checker.isOptionalParameter(declaration)) {
+                    return {
+                      type: 'nullable', underlying_type: param_type_validated
+                    }
+                  }
+                }
+              }
+            }
+            return param_type_validated;
+          }
+
           fn.arguments[param_name] = {
             description: param_desc,
-            type: param_type_validated,
+            type: optionalParameterType(),
           }
         });
 
