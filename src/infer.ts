@@ -48,6 +48,7 @@ export function programInfo(filename: string, vendor_arg?: string): ProgramInfo 
     Deno.exit(1);
   }
 
+  // TODO: This may not work when the user attempts to do this from a remote deno invocation
   const pathname = new URL('', import.meta.url).pathname;
   const dirname = pathname.replace(/\/[^\/]*$/,'');
   const deno_lib_path = resolve(`${dirname}/deno.d.ts`); // Assumes that deno.d.ts and infer.ts will be co-located.

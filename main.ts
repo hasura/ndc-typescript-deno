@@ -23,6 +23,7 @@
  * [x] Reimplement arg position schmea correlation
  * [ ] Provide additional exception detail for anticipated failures
  * [x] Depend on TS SDK
+ * [x] Remove any
  * [ ] Split up entrypoint sources
  */
 
@@ -78,20 +79,12 @@ program
   });
 
 /**
- * NOTE: This could pose an issue when calling this program via Deno URL from CLI.
- *       Depending on how local references are resolved it may look relative to the URL.
- *       Having the user specify an explicit import map to capture this import may be a workaround.
- */
-import * as index from './index.ts';
-
-/**
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
  * @returns 
  */
-function invoke(positions: FunctionPositions, payload: Payload<unknown>) {
+function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>) {
   const ident = payload.function;
-  type IK = keyof typeof index;
-  const func = index[ident as IK] as any;
+  const func = functions[ident as any] as any;
   const args = reposition(positions, payload);
   const result = func.apply(null, args);
   return new Response(result);
@@ -135,7 +128,7 @@ function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array
   return sorted;
 }
 
-async function respond(positions: FunctionPositions, schema: string, req: Request): Promise<Response> {
+async function respond(functions: any, positions: FunctionPositions, schema: string, req: Request): Promise<Response> {
 
   const { pathname: path } = new URL(req.url);
   const body = await (async () => {
@@ -152,7 +145,7 @@ async function respond(positions: FunctionPositions, schema: string, req: Reques
   // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
     case '/call':
-      return invoke(positions, body);
+      return invoke(functions, positions, body);
     case '/schema':
       return new Response(schema, {
         headers: {
@@ -164,7 +157,8 @@ async function respond(positions: FunctionPositions, schema: string, req: Reques
 }
 
 function getInfo(cmdObj: ServeOptions): ProgramInfo {
-  switch(cmdObj.schemaMode) {
+  const schemaMode = cmdObj.schemaMode || 'INFER';
+  switch(schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
      */
@@ -196,7 +190,9 @@ function getInfo(cmdObj: ServeOptions): ProgramInfo {
 
 import * as ndc_sdk from 'npm:@hasura/ndc-sdk-typescript'; // TODO: Use a tagged version of this
 
-function startServer(cmdObj: ServeOptions) {
+async function startServer(cmdObj: ServeOptions) {
+  const functionsArg = cmdObj.functions || './functions/index.ts';
+  const functions = await import(functionsArg)
   const info = getInfo(cmdObj);
   const schemaString = JSON.stringify(info.schema);
   const positions = info.positions;
@@ -205,7 +201,7 @@ function startServer(cmdObj: ServeOptions) {
     cmdObj,
     async (req: Request) => {
       try {
-        return await respond(positions, schemaString, req);
+        return await respond(functions, positions, schemaString, req);
       } catch(e) {
         return new Response(e, {status: 500});
       }
@@ -214,6 +210,7 @@ function startServer(cmdObj: ServeOptions) {
 }
 
 type ServeOptions = {
+  functions: string,
   port?: number,
   hostname?: string,
   schemaMode: 'READ' | 'INFER',
@@ -221,16 +218,18 @@ type ServeOptions = {
   vendor?: string
 }
 
+// TODO: Figure out why requiredOption and defaults aren't working.
 program
   .command('serve')
+  .option('-f, --functions <string>', 'Path to your typescript functions entrypoint file.')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
-  .option('--schema-mode <mode>', 'READ|INFER (default). INFER will write the schema if --schema-location is also set.', undefined, 'INFER')
+  .option('--schema-mode <mode>', 'READ|INFER (default). INFER will write the schema if --schema-location is also set.')
   .option('--schema-location <location>', 'Where to read or write the schema from or to depending on mode.')
   .option('--vendor <location>', 'Where to find the associated vendor files and import map.')
   .action(startServer);
 
-program.parse(Deno.args);
+await program.parseAsync(Deno.args);
 
 /**
  * Deno watcher:
