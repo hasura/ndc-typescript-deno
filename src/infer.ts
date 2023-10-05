@@ -3,8 +3,6 @@ import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
-type ValidateTypeResult = { type: 'named', name: string } | { type: 'array', element_type: ValidateTypeResult };
-
 export type FunctionPositions = Record<string, Array<string>>
 
 export type ProgramInfo = {
@@ -134,7 +132,7 @@ export function programInfo(filename: string, vendor_arg?: string): ProgramInfo 
     return false;
   }
 
-  const validate_type = (name: string, ty: any): ValidateTypeResult => {
+  const validate_type = (name: string, ty: any): Type => {
     const type_str = checker.typeToString(ty);
     const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
     const type_name_lower: string = type_name.toLowerCase();
@@ -228,7 +226,7 @@ export function programInfo(filename: string, vendor_arg?: string): ProgramInfo 
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker));
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
           const type_name = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
-          const param_type_validated = validate_type(type_name, param_type); // E.g. `bio_arguments_username_0`
+          const param_type_validated = validate_type(type_name, param_type); // E.g. `bio_arguments_username`
 
           positions[fn.name].push(param_name);
 

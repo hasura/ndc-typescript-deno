@@ -1,4 +1,16 @@
 
+
+/**
+ * Deno watcher:
+ * TODO: Put this into the readme
+ * https://medium.com/deno-the-complete-reference/denos-built-in-watcher-1d91cb976349
+ * 
+ * Example:
+ * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
+ * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve
+ * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve --schema-mode INFER --schema-location scratch/schema.json --vendor scratch/vendor
+ */
+
 /**
  * TODO: 
  * 
@@ -18,7 +30,7 @@
  * [x] Dynamic invocation of functions from index module
  * [x] Seperate infer command for convenience
  * [x] --vendor flag for explicit vendor location
- * [ ] Reimplement async dispatch
+ * [x] Reimplement async dispatch
  * [x] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
  * [ ] Provide additional exception detail for anticipated failures
@@ -26,88 +38,33 @@
  * [x] Remove any
  * [ ] Split up entrypoint sources
  * [x] Support optional parameters
- */
-
-/**
- * Importing TS SDK Dependency
- * https://github.com/hasura/ndc-sdk-typescript/tree/main
- * 
- * Currently not working (due to missing import map?)
- */
-
-// import {start} from 'https://raw.githubusercontent.com/hasura/ndc-sdk-typescript/main/src/server.ts';
-// import {Connector} from 'https://raw.githubusercontent.com/hasura/ndc-sdk-typescript/main/src/connector.ts';
-
-/**
- * Subprocesses:
- * https://docs.deno.com/runtime/tutorials/subprocess
- */
-
-const command = new Deno.Command(Deno.execPath(), {
-  args: [
-    "eval",
-    "console.log('hello'); console.error('world')",
-  ],
-});
-
-// create subprocess and collect output
-const { code, stdout, stderr } = await command.output();
-
-console.assert(code === 0);
-console.assert("world\n" === new TextDecoder().decode(stderr));
-console.assert("hello\n" === new TextDecoder().decode(stdout));
-
-/**
- * Command line arguments:
- * https://examples.deno.land/command-line-arguments
- * 
- * Or via `cmd` library
- * https://deno.land/x/cmd@v1.2.0#action-handler-subcommands
+ * [ ] Deno run from deno.land...
+ * [x] Put imports up the top
+ * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
-
-const program = new Command("typescript-connector");
-
-import { ProgramInfo, programInfo } from './src/infer.ts'
-
-program
-  .command('infer <entrypoint>')
-  .option('-v, --vendor <path>', 'Vendor location (optional)')
-  .action(function (entrypoint, cmdObj) {
-    const output = programInfo(entrypoint, cmdObj.vendor);
-    console.log(JSON.stringify(output));
-  });
+import { FunctionPositions, ProgramInfo, programInfo } from './infer.ts'
 
 /**
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
  * @returns 
  */
-function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>) {
+async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
   const ident = payload.function;
   const func = functions[ident as any] as any;
   const args = reposition(positions, payload);
-  const result = func.apply(null, args);
+  // TODO: Exception handling.
+  let result = func.apply(null, args);
+  if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
+    result = await result;
+  }
   return new Response(result);
 }
 
 type Payload<X> = {
   function: string,
   args: Record<string, X>
-}
-
-type FunctionPositions = Record<string, Array<string>>
-
-type FunctionWithPosition = {
-  name: string,
-  arguments: Record<string, { position: number } >
-}
-
-type FunctionsWithPostions = Array<FunctionWithPosition>;
-
-type SchemaWithPositions = {
-  functions: FunctionsWithPostions,
-  procedures: FunctionsWithPostions,
 }
 
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
@@ -145,8 +102,10 @@ async function respond(functions: any, positions: FunctionPositions, schema: str
 
   // TODO: Use the NDC TS SDK to dictate the routes, etc.
   switch(path) {
-    case '/call':
-      return invoke(functions, positions, body);
+    case '/call': {
+      const result = await invoke(functions, positions, body);
+      return new Response(result);
+    }
     case '/schema':
       return new Response(schema, {
         headers: {
@@ -175,7 +134,7 @@ function getInfo(cmdObj: ServeOptions): ProgramInfo {
     }
     case 'INFER': {
       console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
-      const info = programInfo('./index.ts', cmdObj.vendor); // TODO: entrypoint param
+      const info = programInfo(cmdObj.functions, cmdObj.vendor); // TODO: entrypoint param
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         const infoString = JSON.stringify(info);
@@ -188,8 +147,6 @@ function getInfo(cmdObj: ServeOptions): ProgramInfo {
       throw new Error('Invalid --schema-mode');
   }
 }
-
-import * as ndc_sdk from 'npm:@hasura/ndc-sdk-typescript'; // TODO: Use a tagged version of this
 
 async function startServer(cmdObj: ServeOptions) {
   const functionsArg = cmdObj.functions || './functions/index.ts';
@@ -219,30 +176,31 @@ type ServeOptions = {
   vendor?: string
 }
 
-// TODO: Figure out why requiredOption and defaults aren't working.
+/**
+ * The CLI entrypoint into this program.
+ * Uses the 'cmd' Deno package.
+ */
+
+const program = new Command("typescript-connector");
+
+program
+  .command('infer <entrypoint>')
+  .option('-v, --vendor <path>', 'Vendor location (optional)')
+  .action(function (entrypoint, cmdObj) {
+    const output = programInfo(entrypoint, cmdObj.vendor);
+    console.log(JSON.stringify(output));
+  });
+
+// Note: There seems to be a bug in the CMD library where defaults and regexes don't typecheck.
+//       https://github.com/acathur/cmd/issues/6
 program
   .command('serve')
   .option('-f, --functions <string>', 'Path to your typescript functions entrypoint file.')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
   .option('--schema-mode <mode>', 'READ|INFER (default). INFER will write the schema if --schema-location is also set.')
-  .option('--schema-location <location>', 'Where to read or write the schema from or to depending on mode.')
-  .option('--vendor <location>', 'Where to find the associated vendor files and import map.')
+  .option('--schema-location <path>', 'Where to read or write the schema from or to depending on mode.')
+  .option('--vendor <path>', 'Where to find the associated vendor files and import map.')
   .action(startServer);
 
 await program.parseAsync(Deno.args);
-
-/**
- * Deno watcher:
- * https://medium.com/deno-the-complete-reference/denos-built-in-watcher-1d91cb976349
- * 
- * Example:
- * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
- * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve
- * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve --schema-mode INFER --schema-location scratch/schema.json --vendor scratch/vendor
- */
-
-/**
- * NPM imports:
- * https://docs.deno.com/runtime/manual/node/npm_specifiers
- */
