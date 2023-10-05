@@ -18,11 +18,11 @@
  * [x] Share SDK issues with Benoit
  * [x] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
  * [ ] Convert server.ts to connector protocol
- * [ ] Remove rust harness
- * [ ] Update docker to leverage deno implementation
+ * [x] Remove rust harness
+ * [x] Update docker to leverage deno implementation
  * [x] Do start-time inference on functions
  * [x] Have schema cache respecting flag --schema: /schema.json - Creates if missing, uses if present
- * [ ] Manage src locations better
+ * [x] Manage src locations better
  * [x] CMD parsing library
  * [!] Subprocess library (Not required)
  * [x] File-reading library (Builtin)
@@ -36,7 +36,7 @@
  * [ ] Provide additional exception detail for anticipated failures
  * [x] Depend on TS SDK
  * [x] Remove any
- * [ ] Split up entrypoint sources
+ * [x] Split up entrypoint sources
  * [x] Support optional parameters
  * [ ] Deno run from deno.land...
  * [x] Put imports up the top
