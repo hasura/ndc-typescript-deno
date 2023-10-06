@@ -17,7 +17,7 @@
  * [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
  * [x] Share SDK issues with Benoit
  * [x] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
- * [ ] Convert server.ts to connector protocol
+ * [ ] Convert server.ts to connector protocol in `connector.ts`
  * [x] Remove rust harness
  * [x] Update docker to leverage deno implementation
  * [x] Do start-time inference on functions
@@ -42,10 +42,12 @@
  * [x] Put imports up the top
  * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
  * [ ] Output usage information when running locally such as connector create command
+ * [ ] Make sure that you can create a derivative custom connector from the base docker image
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
 import { FunctionPositions, ProgramInfo, programInfo } from './infer.ts'
+import {} from './connector.ts'
 
 /**
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
