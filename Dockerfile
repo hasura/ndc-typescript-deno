@@ -7,7 +7,6 @@ WORKDIR /functions
 RUN ls /app
 
 # Pre-cache inference results and dependencies
-# RUN echo ' {"functions": "/functions/index.ts", "vendor": "/functions/vendor"} ' > /etc/connector/config.json
 RUN EARLY_ENTRYPOINT_EXIT=true sh /app/entrypoint.sh
 
 ENTRYPOINT [ "sh", "/app/entrypoint.sh", "deno"]

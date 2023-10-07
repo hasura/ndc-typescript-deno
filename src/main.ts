@@ -5,10 +5,15 @@
  * TODO: Put this into the readme
  * https://medium.com/deno-the-complete-reference/denos-built-in-watcher-1d91cb976349
  * 
+ * Notes:
+ * - Dependencies have to be vendored prior to inference.
+ * 
  * Example:
  * > deno run --allow-read=/var/tmp/testdata --allow-net=:8080 --watch app.ts
  * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve
  * > deno run --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check main.ts serve --schema-mode INFER --schema-location scratch/schema.json --vendor scratch/vendor
+ * > deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check ./src/main.ts serve --configuration (echo '{"functions": "./scratch/index.ts", "vendor": "./scratch/vendor", "schemaLocation": "./scratch/schema.json", "schemaMode": "READ"}' | psub)
+ * > docker build -t ndc-typescript-deno:deno1 --progress plain . && docker run -v (pwd)/scratch/config.json:/etc/connector/config.json -it ndc-typescript-deno:deno1
  */
 
 /**
@@ -50,8 +55,8 @@
  * [ ] Test running from user scenario
  * [ ] Test Docker
  * [ ] Test Deno Deploy
- * [ ] Precaching
- * [ ] Test imports
+ * [x] Precaching
+ * [x] Test imports
  * [x] Test async
  * [x] Trim whitespace from descriptions and only include if there is content.
  */
