@@ -4,11 +4,8 @@ set -e
 
 echo "$@"
 
-typescript_directory=/functions
-
-cp /app/deno.d.ts "$typescript_directory" # TODO: Find out if there's a better way to put this in scope
-
-cd "$typescript_directory"
+cd /functions
+cp /app/deno.d.ts ./ # TODO: Find out if there's a better way to put this in scope
 
 if [ -d vendor ]
 then
