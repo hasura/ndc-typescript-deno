@@ -49,57 +49,10 @@
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
-import { FunctionPositions, programInfo } from './infer.ts'
-import { Configuration, connector, getInfo, invoke } from './connector.ts'
+import { programInfo } from './infer.ts'
+import { connector } from './connector.ts'
 import { start } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
-async function respond(functions: any, positions: FunctionPositions, schema: string, req: Request): Promise<Response> {
-
-  const { pathname: path } = new URL(req.url);
-  const body = await (async () => {
-    switch(req.method) {
-      case 'POST':
-        return await req.json();
-      case 'GET':
-        return {};
-      default:
-        throw new Error(`Invalid request method: ${req.method}`);
-    }
-  })();
-
-  const jsonResponse = { headers: { 'content-type': 'application/json' }};
-
-  // TODO: Use the NDC TS SDK to dictate the routes, etc.
-  switch(path) {
-    case '/call': {
-      const result = await invoke(functions, positions, body);
-      return new Response(JSON.stringify(result), jsonResponse);
-    }
-    case '/schema':
-      return new Response(schema, jsonResponse);
-    default:
-      throw new Error(`Invalid path [${path}]. Requests should be: GET /schema, or POST /call {function, args}.`);
-  }
-}
-
-async function startServer(cmdObj: Configuration) {
-  const functionsArg = cmdObj.functions || './functions/index.ts';
-  const functions = await import(functionsArg)
-  const info = getInfo(cmdObj);
-  const schemaString = JSON.stringify(info.schema);
-  const positions = info.positions;
-  console.error("Running server");
-  Deno.serve(
-    cmdObj,
-    async (req: Request) => {
-      try {
-        return await respond(functions, positions, schemaString, req);
-      } catch(e) {
-        return new Response(e, {status: 500});
-      }
-    }
-  );
-}
 
 /**
  * The CLI entrypoint into this program.
@@ -115,19 +68,6 @@ program
     const output = programInfo(entrypoint, cmdObj.vendor);
     console.log(JSON.stringify(output));
   });
-
-// TODO: Remove this command once the Connector.start based serve command is ported.
-// Note: There seems to be a bug in the CMD library where defaults and regexes don't typecheck.
-//       https://github.com/acathur/cmd/issues/6
-program
-  .command('go')
-  .option('-f, --functions <string>', 'Path to your typescript functions entrypoint file.')
-  .option('-p, --port <INT>', 'Port to listen on.')
-  .option('--hostname <host>', 'Port to listen on.')
-  .option('--schema-mode <mode>', 'READ|INFER (default). INFER will write the schema if --schema-location is also set.')
-  .option('--schema-location <path>', 'Where to read or write the schema from or to depending on mode.')
-  .option('--vendor <path>', 'Where to find the associated vendor files and import map.')
-  .action(startServer);
 
 // This is a passthrough for the TS SDK start method
 // The command name 'serve' has to match the command defined in the SDK since Deno.args is immutable.
