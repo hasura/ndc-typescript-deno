@@ -34,7 +34,7 @@
  * [x] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
  * [ ] Handle exceptions
- * [ ] Mutations
+ * [x] Mutations
  * [ ] Provide additional exception detail for anticipated failures
  * [x] Depend on TS SDK
  * [x] Remove any
