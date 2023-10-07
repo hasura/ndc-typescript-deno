@@ -206,7 +206,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
         }
 
         const fn_type = checker.getTypeOfSymbolAtLocation(fn_sym, fn_sym.valueDeclaration!);
-        const fn_desc = ts.displayPartsToString(fn_sym.getDocumentationComment(checker));
+        const fn_desc = ts.displayPartsToString(fn_sym.getDocumentationComment(checker)).trim();
         const fn_tags = fn_sym.getJsDocTags();
         const fn_pure = !!(fn_tags.find((e) => e.name == 'pure'));
 
@@ -214,10 +214,11 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
         const result_type = call.getReturnType();
         const result_type_name = `${fn_name}_output`;
         const result_type_validated = validate_type(result_type_name, result_type);
+        const description = fn_desc ? { description: fn_desc } : {}
 
         const fn: FunctionInfo = {
           name: node.name!.text,
-          description: fn_desc,
+          ...description,
           arguments: {},
           result_type: result_type_validated,
         };
@@ -226,10 +227,11 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
         call.parameters.forEach((param) => {
           const param_name = param.getName();
-          const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker));
+          const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker)).trim();
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
           const type_name = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
           const param_type_validated = validate_type(type_name, param_type); // E.g. `bio_arguments_username`
+          const description = param_desc ? { description: param_desc } : {}
 
           positions[fn.name].push(param_name);
 
@@ -251,7 +253,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
           }
 
           fn.arguments[param_name] = {
-            description: param_desc,
+            ...description,
             type: optionalParameterType(),
           }
         });

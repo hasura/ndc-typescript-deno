@@ -50,6 +50,10 @@
  * [ ] Test running from user scenario
  * [ ] Test Docker
  * [ ] Test Deno Deploy
+ * [ ] Precaching
+ * [ ] Test imports
+ * [x] Test async
+ * [x] Trim whitespace from descriptions and only include if there is content.
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'

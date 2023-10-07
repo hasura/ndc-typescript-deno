@@ -7,18 +7,16 @@ WORKDIR /functions
 RUN ls /app
 
 # Pre-cache inference results and dependencies
+# RUN echo ' {"functions": "/functions/index.ts", "vendor": "/functions/vendor"} ' > /etc/connector/config.json
 RUN EARLY_ENTRYPOINT_EXIT=true sh /app/entrypoint.sh
 
 ENTRYPOINT [ "sh", "/app/entrypoint.sh", "deno"]
 
 CMD [ \
   "run", \
-  "--allow-run", "--allow-net", "--allow-read", "--allow-write", "--allow-env", \
+  "--allow-run", "--allow-net", "--allow-read", "--allow-write", "--allow-env", "--allow-sys", \
   "--import-map", "vendor/import_map.json", \
   "/app/main.ts", "serve", \
   "--port", "8080", \
-  "--functions", "/functions/index.ts", \
-  "--vendor", "/functions/vendor", \
-  "--schema-mode", "READ", \
-  "--schema-location", "/functions/schema.json" \
+  "--configuration", "/etc/connector/config.json" \
   ]
