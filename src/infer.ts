@@ -29,7 +29,8 @@ function isParameterDeclaration(node: ts.Node | undefined): node is ts.Parameter
   return node?.kind === ts.SyntaxKind.Parameter;
 }
 
-export function programInfo(filename: string, vendor_arg?: string): ProgramInfo {
+export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
+  const filename = filename_arg || './functions/index.ts'; // TODO: Should this have already been established upstream?
   const vendorPath = vendor_arg || './vendor';
   const vendorPathResolved = resolve(vendorPath);
   const importMapPath = `${vendorPath}/import_map.json`;

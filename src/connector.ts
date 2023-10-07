@@ -1,19 +1,29 @@
 
-import { CapabilitiesResponse, Connector, ExplainResponse, FunctionInfo, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
+import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
 /**
  * Implementation of the Connector interface for Deno connector.
  * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
  */
 
-export interface Configuration {
-  functions_location?: string,
-  schema?: SchemaResponse,
-  schema_location?: string,
-  vendor_location?: string
+export type State = {
+  info: ProgramInfo,
+  functions: any
 }
-export interface State { }
-export const CONFIGURATION_SCHEMA: unknown = { } // Could get this from @json-schema-tools/meta-schema
+
+export interface Configuration {
+  functions: string,
+  port?: number, // Is this hard-coded in start?
+  hostname?: string,
+  schemaMode?: 'READ' | 'INFER',
+  schemaLocation?: string,
+  vendor?: string
+}
+
+export const CONFIGURATION_SCHEMA: unknown = { }; // Could get this from @json-schema-tools/meta-schema
+
 export const CAPABILITIES_RESPONSE: CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
@@ -21,6 +31,7 @@ export const CAPABILITIES_RESPONSE: CapabilitiesResponse = {
     mutations: { },
   },
 };
+
 export const EMPTY_SCHEMA = {
   collections: [],
   functions: [],
@@ -30,75 +41,207 @@ export const EMPTY_SCHEMA = {
 };
 
 /**
+ * Helper functions
+ */
+
+// TODO: Consider making this async
+export function getInfo(cmdObj: Configuration): ProgramInfo {
+  const schemaMode = cmdObj.schemaMode || 'INFER';
+  switch(schemaMode) {
+    /**
+     * The READ option is available in case the user wants to pre-cache their schema during development.
+     */
+    case 'READ': {
+      if(!cmdObj.schemaLocation) {
+        throw new Error('--schema-location is required if using --schema-mode READ');
+      }
+      console.error(`Reading existing schema: ${cmdObj.schemaLocation}`);
+      const bytes = Deno.readFileSync(cmdObj.schemaLocation);
+      const decoder = new TextDecoder("utf-8");
+      const decoded = decoder.decode(bytes);
+      return JSON.parse(decoded);
+    }
+    case 'INFER': {
+      console.error(`Inferring schema with map location ${cmdObj.vendor}`);
+      const info = programInfo(cmdObj.functions, cmdObj.vendor); // TODO: entrypoint param
+      const schemaLocation = cmdObj.schemaLocation;
+      if(schemaLocation) {
+        console.error(`Writing schema to ${cmdObj.schemaLocation}`);
+        const infoString = JSON.stringify(info);
+        // NOTE: Using sync functions should be ok since they're run on startup.
+        Deno.writeTextFileSync(schemaLocation, infoString);
+      }
+      return info;
+    }
+    default:
+      throw new Error('Invalid schema-mode. Use READ or INFER.');
+  }
+}
+
+/**
+ * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
+ * @returns 
+ */
+export async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
+  const ident = payload.function;
+  const func = functions[ident as any] as any;
+  const args = reposition(positions, payload);
+  // TODO: Exception handling.
+  let result = func.apply(null, args);
+  if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
+    result = await result;
+  }
+  return result;
+}
+
+type Payload<X> = {
+  function: string,
+  args: Record<string, X>
+}
+
+function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
+  const keys = Object.keys(payload.args);
+
+  // Can return early if there are less then 2 args
+  // Might be good to find issues with schema alignment earlier though.
+  if(keys.length < 2) {
+    return Object.values(payload.args);
+  }
+
+  const positions = functions[payload.function];
+
+  if(!positions) {
+    throw new Error(`Couldn't find function ${payload.function} in schema.`);
+  }
+
+  const sorted = positions.map(k => payload.args[k]);
+  return sorted;
+}
+
+function pruneFields<X>(fields: Record<string, Field> | null | undefined, result: Record<string, X>): Record<string, X> {
+  if(!fields) {
+    // TODO: How to log with SDK?
+    console.error(`Warning: No fields present in query.`); // TODO: Add context for which function is being called
+    return result;
+  }
+
+  const response: Record<string, X> = {};
+
+  for(const [k,v] of Object.entries(fields)) {
+    switch(v.type) {
+      case 'column':
+        response[k] = result[v.column];
+        break;
+      default:
+        console.error(`field of type ${v.type} is not supported.`); // TODO: Add context for which function is being called
+    }
+  }
+
+  return response;
+}
+
+/**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
-const connector: Connector<Configuration, State> = {
-  try_init_state(
-      _: Configuration,
-      __: unknown
+export const connector: Connector<Configuration, State> = {
+  async try_init_state(
+      config: Configuration,
+      _metrics: unknown
   ): Promise<State> {
-      return Promise.resolve({});
+    const functionsArg = config.functions || './functions/index.ts'; // TODO: Resolve this upstream or in a helper.
+    const resolvedFunctionsPath = resolve(functionsArg); // Makes relative to CWD instead of the source
+    const functions = await import(resolvedFunctionsPath);
+    const info = getInfo(config);
+    return {
+      functions,
+      info
+    }
   },
 
   get_capabilities(_: Configuration): CapabilitiesResponse {
-      return CAPABILITIES_RESPONSE;
+    return CAPABILITIES_RESPONSE;
   },
 
   get_configuration_schema(): any {
-      return CONFIGURATION_SCHEMA;
+    return CONFIGURATION_SCHEMA;
   },
 
   make_empty_configuration(): Configuration {
-      const conf: Configuration = { };
-      return conf;
+    const conf: Configuration = {
+      functions: './functions/index.ts',
+      vendor: './functions/vendor'
+    };
+    return conf;
   },
 
+  // TODO: Does this add in the defaults?
   update_configuration(configuration: Configuration): Promise<Configuration> {
-      // Do nothing for now.
-      return Promise.resolve(configuration);
+    return Promise.resolve(configuration);
   },
 
-  validate_raw_configuration( configuration: Configuration): Promise<Configuration> {
-      return Promise.resolve(configuration);
+  validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
+    return Promise.resolve(configuration);
   },
 
-  get_schema(_configuration: Configuration): SchemaResponse {
-    // TODO: read or infer based on presence of schema or schema_location in configuration
-    return EMPTY_SCHEMA;
+  get_schema(config: Configuration): SchemaResponse {
+    const result = getInfo(config);
+    return result.schema;
   },
 
+  // TODO: What do we want explain to do in this scenario?
   explain(
-      _configuration: Configuration,
-      _: State,
-      _request: QueryRequest
+    _configuration: Configuration,
+    _: State,
+    _request: QueryRequest
   ): Promise<ExplainResponse> {
     throw new Error('TODO: Implement `explain`.');
   },
 
-  query(
-      _configuration: Configuration,
-      _: State,
-      _request: QueryRequest
+  async query(
+    _configuration: Configuration,
+    state: State,
+    request: QueryRequest
   ): Promise<QueryResponse> {
-    throw new Error('TODO: Implement `query`.')
+    const func = request.collection;
+    const args = Object.fromEntries(Object.entries(request.arguments).map(([k,v], _i) => {
+      switch(v.type) {
+        case 'literal':
+          return [k, v.value];
+        default:
+          throw new Error(`Function ${func} argument ${k} of type ${v.type} not supported.`);
+      }
+    }));
+    const payload: Payload<unknown> = {
+      function: func,
+      args: args
+    };
+    const result = await invoke(state.functions, state.info.positions, payload);
+    const fields = request.query.fields;
+    const pruned = pruneFields(fields, result);
+    return [{
+      aggregates: {},
+      rows: [{
+        '__value': pruned
+      }]
+    }];
   },
 
   mutation(
-      _configuration: Configuration,
-      _state: State,
-      _request: MutationRequest
+    _configuration: Configuration,
+    _state: State,
+    _request: MutationRequest
   ): Promise<MutationResponse> {
-      throw new Error('TODO: Implement `mutation`.');
+    throw new Error('TODO: Implement `mutation`.');
   },
 
   // TODO: Deprecated
   get_read_regions(_: Configuration): string[] {
-      return [];
+    return [];
   },
 
   // TODO: Deprecated
   get_write_regions(_: Configuration): string[] {
-      return [];
+    return [];
   },
 
   // TODO: https://qdrant.github.io/qdrant/redoc/index.html#tag/service/operation/healthz

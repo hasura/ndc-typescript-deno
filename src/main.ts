@@ -17,7 +17,7 @@
  * [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
  * [x] Share SDK issues with Benoit
  * [x] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
- * [ ] Convert server.ts to connector protocol in `connector.ts`
+ * [x] Convert server.ts to connector protocol in `connector.ts`
  * [x] Remove rust harness
  * [x] Update docker to leverage deno implementation
  * [x] Do start-time inference on functions
@@ -43,51 +43,13 @@
  * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
  * [ ] Output usage information when running locally such as connector create command
  * [ ] Make sure that you can create a derivative custom connector from the base docker image
+ * [ ] Update SDK
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
-import { FunctionPositions, ProgramInfo, programInfo } from './infer.ts'
-import {} from './connector.ts'
-
-/**
- * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
- * @returns 
- */
-async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
-  const ident = payload.function;
-  const func = functions[ident as any] as any;
-  const args = reposition(positions, payload);
-  // TODO: Exception handling.
-  let result = func.apply(null, args);
-  if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
-    result = await result;
-  }
-  return result;
-}
-
-type Payload<X> = {
-  function: string,
-  args: Record<string, X>
-}
-
-function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
-  const keys = Object.keys(payload.args);
-
-  // Can return early if there are less then 2 args
-  // Might be good to find issues with schema alignment earlier though.
-  if(keys.length < 2) {
-    return Object.values(payload.args);
-  }
-
-  const positions = functions[payload.function];
-
-  if(!positions) {
-    throw new Error(`Couldn't find function ${payload.function} in schema.`);
-  }
-
-  const sorted = positions.map(k => payload.args[k]);
-  return sorted;
-}
+import { FunctionPositions, programInfo } from './infer.ts'
+import { Configuration, connector, getInfo, invoke } from './connector.ts'
+import { start } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
 async function respond(functions: any, positions: FunctionPositions, schema: string, req: Request): Promise<Response> {
 
@@ -118,39 +80,7 @@ async function respond(functions: any, positions: FunctionPositions, schema: str
   }
 }
 
-function getInfo(cmdObj: ServeOptions): ProgramInfo {
-  const schemaMode = cmdObj.schemaMode || 'INFER';
-  switch(schemaMode) {
-    /**
-     * The READ option is available in case the user wants to pre-cache their schema during development.
-     */
-    case 'READ': {
-      if(!cmdObj.schemaLocation) {
-        throw new Error('--schema-location is require if using --schema-mode READ');
-      }
-      console.error(`Reading existing schema: ${cmdObj.schemaLocation}`);
-      const bytes = Deno.readFileSync(cmdObj.schemaLocation);
-      const decoder = new TextDecoder("utf-8");
-      const decoded = decoder.decode(bytes);
-      return JSON.parse(decoded);
-    }
-    case 'INFER': {
-      console.error(`Inferring schema: ${cmdObj.schemaLocation}, with map ${cmdObj.vendor}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendor); // TODO: entrypoint param
-      const schemaLocation = cmdObj.schemaLocation;
-      if(schemaLocation) {
-        const infoString = JSON.stringify(info);
-        // NOTE: Using sync functions should be ok since they're run on startup.
-        Deno.writeTextFileSync(schemaLocation, infoString);
-      }
-      return info;
-    }
-    default:
-      throw new Error('Invalid --schema-mode');
-  }
-}
-
-async function startServer(cmdObj: ServeOptions) {
+async function startServer(cmdObj: Configuration) {
   const functionsArg = cmdObj.functions || './functions/index.ts';
   const functions = await import(functionsArg)
   const info = getInfo(cmdObj);
@@ -184,19 +114,11 @@ program
     console.log(JSON.stringify(output));
   });
 
-type ServeOptions = {
-  functions: string,
-  port?: number,
-  hostname?: string,
-  schemaMode: 'READ' | 'INFER',
-  schemaLocation?: string,
-  vendor?: string
-}
-
+// TODO: Remove this command once the Connector.start based serve command is ported.
 // Note: There seems to be a bug in the CMD library where defaults and regexes don't typecheck.
 //       https://github.com/acathur/cmd/issues/6
 program
-  .command('serve')
+  .command('go')
   .option('-f, --functions <string>', 'Path to your typescript functions entrypoint file.')
   .option('-p, --port <INT>', 'Port to listen on.')
   .option('--hostname <host>', 'Port to listen on.')
@@ -204,5 +126,20 @@ program
   .option('--schema-location <path>', 'Where to read or write the schema from or to depending on mode.')
   .option('--vendor <path>', 'Where to find the associated vendor files and import map.')
   .action(startServer);
+
+// This is a passthrough for the TS SDK start method
+// The command name 'serve' has to match the command defined in the SDK since Deno.args is immutable.
+program
+  .command('serve')
+  .option('--configuration <path>')
+  .option('--port <port>')
+  .option('--service-token-secret <secret>')
+  .option('--otlp_endpoint <endpoint>')
+  .option('--service-name <name>')
+  .option('-h, --help')
+  .action((_args, _cmdObj) => {
+    console.error(`Running Connector.start`);
+    start(connector);
+  });
 
 await program.parseAsync(Deno.args);
