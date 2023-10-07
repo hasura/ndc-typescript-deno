@@ -1,5 +1,5 @@
 
-import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, InternalServerError, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
@@ -151,9 +151,13 @@ async function query(
     function: func,
     args: requestArgs
   };
-  const result = await invoke(state.functions, state.info.positions, payload);
-  const pruned = pruneFields(requestFields, result);
-  return pruned;
+  try {
+    const result = await invoke(state.functions, state.info.positions, payload);
+    const pruned = pruneFields(requestFields, result);
+    return pruned;
+  } catch(e) {
+    throw new InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
+  }
 }
 
 function resolveArguments(
