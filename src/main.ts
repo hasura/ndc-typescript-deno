@@ -33,7 +33,7 @@
  * [x] Reimplement async dispatch
  * [x] Reimplement position derivation from schema
  * [x] Reimplement arg position schmea correlation
- * [ ] Handle exceptions
+ * [x] Handle exceptions
  * [x] Mutations
  * [ ] Provide additional exception detail for anticipated failures
  * [x] Depend on TS SDK
@@ -45,15 +45,17 @@
  * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
  * [ ] Output usage information when running locally such as connector create command
  * [ ] Make sure that you can create a derivative custom connector from the base docker image
- * [ ] Update SDK
- * [ ] Deno Deploy
+ * [x] Update SDK to 1.1.0
  * [ ] Check if response should be __value
+ * [ ] Test running from user scenario
+ * [ ] Test Docker
+ * [ ] Test Deno Deploy
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
 import { programInfo } from './infer.ts'
 import { connector } from './connector.ts'
-import { start } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { start } from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
 
 
 /**

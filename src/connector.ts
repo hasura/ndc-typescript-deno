@@ -1,5 +1,5 @@
 
-import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, InternalServerError, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, InternalServerError, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse, } from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
 import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
@@ -218,9 +218,9 @@ export const connector: Connector<Configuration, State> = {
     return Promise.resolve(configuration);
   },
 
-  get_schema(config: Configuration): SchemaResponse {
+  get_schema(config: Configuration): Promise<SchemaResponse> {
     const result = getInfo(config);
-    return result.schema;
+    return Promise.resolve(result.schema);
   },
 
   // TODO: What do we want explain to do in this scenario?
