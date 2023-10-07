@@ -1,6 +1,6 @@
 
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
-import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
+import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
 /**
@@ -39,6 +39,8 @@ export const EMPTY_SCHEMA = {
   object_types: {},
   scalar_types: {},
 };
+
+
 
 /**
  * Helper functions
@@ -96,7 +98,7 @@ async function invoke(functions: any, positions: FunctionPositions, payload: Pay
 
 type Payload<X> = {
   function: string,
-  args: Record<string, X>
+  args: Struct<X>
 }
 
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
@@ -119,14 +121,14 @@ function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array
 }
 
 // TODO: Do deeper field recursion once that's available
-function pruneFields<X>(fields: Record<string, sdk.Field> | null | undefined, result: Record<string, X>): Record<string, X> {
+function pruneFields<X>(fields: Struct<sdk.Field> | null | undefined, result: Struct<X>): Struct<X> {
   if(!fields) {
     // TODO: How to log with SDK?
     console.error(`Warning: No fields present in query.`); // TODO: Add context for which function is being called
     return result;
   }
 
-  const response: Record<string, X> = {};
+  const response: Struct<X> = {};
 
   for(const [k,v] of Object.entries(fields)) {
     switch(v.type) {
@@ -144,9 +146,9 @@ function pruneFields<X>(fields: Record<string, sdk.Field> | null | undefined, re
 async function query(
   state: State,
   func: string,
-  requestArgs: Record<string, unknown>,
+  requestArgs: Struct<unknown>,
   requestFields?: { [k: string]: sdk.Field; } | null | undefined
-): Promise<Record<string, unknown>> {
+): Promise<Struct<unknown>> {
   const payload: Payload<unknown> = {
     function: func,
     args: requestArgs
@@ -162,8 +164,8 @@ async function query(
 
 function resolveArguments(
   func: string,
-  requestArgs: Record<string, sdk.Argument>,
-): Record<string, unknown> {
+  requestArgs: Struct<sdk.Argument>,
+): Struct<unknown> {
   const args = Object.fromEntries(Object.entries(requestArgs).map(([k,v], _i) => {
     switch(v.type) {
       case 'literal':

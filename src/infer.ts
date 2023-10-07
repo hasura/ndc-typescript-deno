@@ -3,7 +3,9 @@ import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
-export type FunctionPositions = Record<string, Array<string>>
+export type Struct<X> = Record<string, X>;
+
+export type FunctionPositions = Struct<Array<string>>
 
 export type ProgramInfo = {
   schema: SchemaResponse,
