@@ -59,6 +59,10 @@
  * [x] Test imports
  * [x] Test async
  * [x] Trim whitespace from descriptions and only include if there is content.
+ * [ ] Update README.md
+ * [ ] CI: Deno Hosting
+ * [ ] CI: Docker build
+ * [ ] CI: Tagging
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
