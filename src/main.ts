@@ -44,6 +44,7 @@
  * [ ] Output usage information when running locally such as connector create command
  * [ ] Make sure that you can create a derivative custom connector from the base docker image
  * [ ] Update SDK
+ * [ ] Deno Deploy
  */
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'

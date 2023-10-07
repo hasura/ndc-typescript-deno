@@ -118,6 +118,7 @@ function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array
   return sorted;
 }
 
+// TODO: Do deeper field recursion once that's available
 function pruneFields<X>(fields: Record<string, Field> | null | undefined, result: Record<string, X>): Record<string, X> {
   if(!fields) {
     // TODO: How to log with SDK?
