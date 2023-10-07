@@ -1,5 +1,11 @@
 #!/bin/sh
 
+####
+# This script serves as the entrypoint for the Dockerfile
+# It is used both during the build phase (with EARLY_ENTRYPOINT_EXIT=true), and during the run phase.
+# This could be split into two scripts easily enough if that is required.
+####
+
 set -e
 
 echo "$@"
