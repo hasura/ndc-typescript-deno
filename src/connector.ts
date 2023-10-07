@@ -1,5 +1,5 @@
 
-import { CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, FunctionInfo, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
@@ -141,6 +141,36 @@ function pruneFields<X>(fields: Record<string, Field> | null | undefined, result
   return response;
 }
 
+async function query(
+  state: State,
+  func: string,
+  requestArgs: Record<string, unknown>,
+  requestFields?: { [k: string]: Field; } | null | undefined
+): Promise<Record<string, unknown>> {
+  const payload: Payload<unknown> = {
+    function: func,
+    args: requestArgs
+  };
+  const result = await invoke(state.functions, state.info.positions, payload);
+  const pruned = pruneFields(requestFields, result);
+  return pruned;
+}
+
+function resolveArguments(
+  func: string,
+  requestArgs: Record<string, Argument>,
+): Record<string, unknown> {
+  const args = Object.fromEntries(Object.entries(requestArgs).map(([k,v], _i) => {
+    switch(v.type) {
+      case 'literal':
+        return [k, v.value];
+      default:
+        throw new Error(`Function ${func} argument ${k} of type ${v.type} not supported.`);
+    }
+  }));
+  return args;
+}
+
 /**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
@@ -203,22 +233,8 @@ export const connector: Connector<Configuration, State> = {
     state: State,
     request: QueryRequest
   ): Promise<QueryResponse> {
-    const func = request.collection;
-    const args = Object.fromEntries(Object.entries(request.arguments).map(([k,v], _i) => {
-      switch(v.type) {
-        case 'literal':
-          return [k, v.value];
-        default:
-          throw new Error(`Function ${func} argument ${k} of type ${v.type} not supported.`);
-      }
-    }));
-    const payload: Payload<unknown> = {
-      function: func,
-      args: args
-    };
-    const result = await invoke(state.functions, state.info.positions, payload);
-    const fields = request.query.fields;
-    const pruned = pruneFields(fields, result);
+    const args = resolveArguments(request.collection, request.arguments);
+    const pruned = await query(state, request.collection, args, request.query.fields);
     return [{
       aggregates: {},
       rows: [{
@@ -227,12 +243,31 @@ export const connector: Connector<Configuration, State> = {
     }];
   },
 
-  mutation(
+  async mutation(
     _configuration: Configuration,
-    _state: State,
-    _request: MutationRequest
+    state: State,
+    request: MutationRequest
   ): Promise<MutationResponse> {
-    throw new Error('TODO: Implement `mutation`.');
+    const results: Array<MutationOperationResults> = [];
+    for(const op of request.operations) {
+      switch(op.type) {
+        case 'procedure': {
+          const result = await query(state, op.name, op.arguments, op.fields);
+          results.push({
+            affected_rows: 1,
+            returning: [{
+              '__value': result
+            }]
+          });
+          break;
+        }
+        default:
+          throw new Error(`Mutation type ${op.type} not supported.`);
+      }
+    }
+    return {
+      operation_results: results
+    }
   },
 
   // TODO: Deprecated
