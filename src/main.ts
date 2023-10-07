@@ -47,13 +47,13 @@
  * [x] Support optional parameters
  * [ ] Deno run from deno.land...
  * [x] Put imports up the top
- * [ ] Maybe reference a url version of deno.d.ts by default and have a flag for docker?
+ * [ ] Make sure deno.d.ts works with docker. Not required for local dev since they wil have Deno dev environment.
  * [ ] Output usage information when running locally such as connector create command
  * [ ] Make sure that you can create a derivative custom connector from the base docker image
  * [x] Update SDK to 1.1.0
  * [ ] Check if response should be __value
  * [ ] Test running from user scenario
- * [ ] Test Docker
+ * [x] Test Docker
  * [ ] Test Deno Deploy
  * [x] Precaching
  * [x] Test imports
