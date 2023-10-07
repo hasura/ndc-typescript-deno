@@ -54,8 +54,7 @@
 
 import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
 import { programInfo } from './infer.ts'
-import { connector } from './connector.ts'
-import { start } from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
+import { start, connector } from './connector.ts'
 
 
 /**

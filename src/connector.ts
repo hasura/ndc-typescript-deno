@@ -1,5 +1,5 @@
 
-import { Argument, CapabilitiesResponse, Connector, ExplainResponse, Field, InternalServerError, MutationOperationResults, MutationRequest, MutationResponse, QueryRequest, QueryResponse, SchemaResponse, } from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
 import { FunctionPositions, ProgramInfo, programInfo } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 
@@ -24,7 +24,7 @@ export interface Configuration {
 
 export const CONFIGURATION_SCHEMA: unknown = { }; // Could get this from @json-schema-tools/meta-schema
 
-export const CAPABILITIES_RESPONSE: CapabilitiesResponse = {
+export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
     query: { },
@@ -82,7 +82,7 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
  * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
  * @returns 
  */
-export async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
+async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
   const ident = payload.function;
   const func = functions[ident as any] as any;
   const args = reposition(positions, payload);
@@ -119,7 +119,7 @@ function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array
 }
 
 // TODO: Do deeper field recursion once that's available
-function pruneFields<X>(fields: Record<string, Field> | null | undefined, result: Record<string, X>): Record<string, X> {
+function pruneFields<X>(fields: Record<string, sdk.Field> | null | undefined, result: Record<string, X>): Record<string, X> {
   if(!fields) {
     // TODO: How to log with SDK?
     console.error(`Warning: No fields present in query.`); // TODO: Add context for which function is being called
@@ -145,7 +145,7 @@ async function query(
   state: State,
   func: string,
   requestArgs: Record<string, unknown>,
-  requestFields?: { [k: string]: Field; } | null | undefined
+  requestFields?: { [k: string]: sdk.Field; } | null | undefined
 ): Promise<Record<string, unknown>> {
   const payload: Payload<unknown> = {
     function: func,
@@ -156,13 +156,13 @@ async function query(
     const pruned = pruneFields(requestFields, result);
     return pruned;
   } catch(e) {
-    throw new InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
+    throw new sdk.InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
   }
 }
 
 function resolveArguments(
   func: string,
-  requestArgs: Record<string, Argument>,
+  requestArgs: Record<string, sdk.Argument>,
 ): Record<string, unknown> {
   const args = Object.fromEntries(Object.entries(requestArgs).map(([k,v], _i) => {
     switch(v.type) {
@@ -176,9 +176,14 @@ function resolveArguments(
 }
 
 /**
+ * This is exported here so that there only needs to be one reference to the SDK version.
+ */
+export const start = sdk.start;
+
+/**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
-export const connector: Connector<Configuration, State> = {
+export const connector: sdk.Connector<Configuration, State> = {
   async try_init_state(
       config: Configuration,
       _metrics: unknown
@@ -193,7 +198,7 @@ export const connector: Connector<Configuration, State> = {
     }
   },
 
-  get_capabilities(_: Configuration): CapabilitiesResponse {
+  get_capabilities(_: Configuration): sdk.CapabilitiesResponse {
     return CAPABILITIES_RESPONSE;
   },
 
@@ -218,7 +223,7 @@ export const connector: Connector<Configuration, State> = {
     return Promise.resolve(configuration);
   },
 
-  get_schema(config: Configuration): Promise<SchemaResponse> {
+  get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
     const result = getInfo(config);
     return Promise.resolve(result.schema);
   },
@@ -227,16 +232,16 @@ export const connector: Connector<Configuration, State> = {
   explain(
     _configuration: Configuration,
     _: State,
-    _request: QueryRequest
-  ): Promise<ExplainResponse> {
+    _request: sdk.QueryRequest
+  ): Promise<sdk.ExplainResponse> {
     throw new Error('TODO: Implement `explain`.');
   },
 
   async query(
     _configuration: Configuration,
     state: State,
-    request: QueryRequest
-  ): Promise<QueryResponse> {
+    request: sdk.QueryRequest
+  ): Promise<sdk.QueryResponse> {
     const args = resolveArguments(request.collection, request.arguments);
     const pruned = await query(state, request.collection, args, request.query.fields);
     return [{
@@ -250,9 +255,9 @@ export const connector: Connector<Configuration, State> = {
   async mutation(
     _configuration: Configuration,
     state: State,
-    request: MutationRequest
-  ): Promise<MutationResponse> {
-    const results: Array<MutationOperationResults> = [];
+    request: sdk.MutationRequest
+  ): Promise<sdk.MutationResponse> {
+    const results: Array<sdk.MutationOperationResults> = [];
     for(const op of request.operations) {
       switch(op.type) {
         case 'procedure': {
