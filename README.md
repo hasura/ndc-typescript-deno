@@ -15,6 +15,8 @@ Useful Links:
 * [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 * [Deno](https://deno.com)
 * [Native Data Connector Specification](https://hasura.github.io/ndc-spec/)
+* [Typescript NDC SDK](https://github.com/hasura/ndc-sdk-typescript/)
+
 
 ## Overview
 
@@ -27,6 +29,7 @@ The connector runs in the following manner:
 
 Note: The Deno runtime is used and this connector assumes that dependencies are specified in accordance with [Deno](https://deno.com) conventions.
 
+
 ## Before you get Started
 
 It is recommended that you:
@@ -38,6 +41,7 @@ It is recommended that you:
 * Install the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 * Optionally install [Deno](https://deno.com)
 * Optionally install the [VSCode Deno Extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno)
+
 
 ## Typescript Functions Format
 
@@ -53,7 +57,7 @@ Your functions should be organised into a directory with one file acting as the 
 import { Hash, encode } from "https://deno.land/x/checksum@1.2.0/mod.ts";
 
 export function make_password_hash(pw: string): string {
-    return new Hash("md5").digest(encode(pw)).hex();
+  return new Hash("md5").digest(encode(pw)).hex();
 }
 
 /**
@@ -64,23 +68,34 @@ export function make_password_hash(pw: string): string {
  * @pure This function should only query data without making modifications
  */
 export async function get_github_profile_description(username: string): Promise<string> {
-    const foo = await fetch(`https://api.github.com/users/${username}`);
-    const response = await foo.json();
-    return response.bio;
+  const foo = await fetch(`https://api.github.com/users/${username}`);
+  const response = await foo.json();
+  return response.bio;
 }
 
 export function make_array(): Array<string> {
-    return ['this', 'is', 'an', 'array']
+  return ['this', 'is', 'an', 'array']
 }
 
 type MyObjectType = {'foo': string, 'baz': Boolean}
 
 export function make_object(): MyObjectType {
-    return { 'foo': 'bar', 'baz': true}
+  return { 'foo': 'bar', 'baz': true}
 }
 
 export function make_object_array(): Array<MyObjectType> {
-    return [make_object(), make_object()]
+  return [make_object(), make_object()]
+}
+
+/**
+ * @pure
+ */
+export function has_optional_args(a: string, b?: string) {
+  if(b) {
+    return `Two args: ${a} ${b}`;
+  } else {
+    return `One arg: ${a}`;
+  }
 }
 ```
 
@@ -93,12 +108,53 @@ and others as procedures, which will become queries and mutations respectively.
 * Parameters are inferred and named after their input parameter names.
 * Simple scalar, array, and object types should be supported
 * Exceptions can be thrown
+* Optional parameters will become optional arguments
 
 Limitations:
 
 * Functions can be sync, or async, but `Promise`'s can't be nested
 * All numbers are exported as `Float`s
-* Union types are not supported
+* Unrecognised types will become opaque scalars, for example: union types.
+* Optional object fields are not currently supported
+* Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
+* Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
+
+
+## Local Development of your Functions
+
+While you can deploy your functions and have errors returned in the `hasura3 connector` logs,
+local development will reward you with much more rapid feedback.
+
+In order to develop your functions locally the following is the recommended practice:
+
+* Have a `./functions/` directory in your project
+* Create a development config for your connector in `./config.json`:
+```json
+{
+  "functions": "./functions/index.ts",
+  "vendor": "./vendor",
+  "schemaMode": "INFER"
+}
+```
+* Vendor your dependencies with:
+* `deno vendor -f ./functions/index.ts --output ./vendor`
+* (Optionally) If you want your development vendor and inference resources to be used to speed up deployment, add the following to your `./config.json`:
+  ```json
+  {
+    "functions": "./functions/index.ts",
+    "vendor": "./functions/vendor",
+    "schemaLocation": "./scratch/schema.json",
+    "schemaMode": "INFER"
+  }
+  ```
+  * Vendor the server's dependencies and yours inside the functions directory:
+  * `deno vendor -f ./functions/index.ts --output ./functions/vendor`
+  * `deno vendor -f https://deno.land/x/hasura-typescript-deno/main.ts --output ./functions/vendor`
+  * This will put runtime dependencies into your `./functions` volume when deployed so that they do not need to be computed during deployment
+* Start the connector
+```sh
+deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura-typescript-deno/main.ts serve --configuration ./config.json
+```
 
 
 ## Deployment for Hasura Users
@@ -108,15 +164,24 @@ You will need:
 * [V3 CLI](https://github.com/hasura/v3-cli) (With Logged in Session)
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * (Optionally) A value to use with `SERVICE_TOKEN_SECRET`
-* A configuration file containing `{}`
 * a typescript sources directory. E.g. `--volume ./my_functions_directory:/functions`
+* A configuration file containing:
+
+```json
+{
+  "functions": "/functions/index.ts",
+  "vendor": "/functions/vendor",
+  "schemaMode": "READ",
+  "schemaLocation": "/functions/schema.json"
+}
+```
 
 Create the connector:
 
 ```
 hasura3 connector create my-cool-connector:v1 \
   --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \
-  --config-file <(echo '{}') \
+  --config-file ./config.json \
   --volume ./functions:/functions \
   --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN # (optional)
 ```
@@ -219,6 +284,7 @@ Errors may arrise from any of the following:
 * Misconfigured service authentication
 * Insufficient query permissions
 * Invalid queries
+* Unanticipated bug in connector implementation
 
 For a botton-up debugging approach:
 
@@ -234,36 +300,21 @@ For a botton-up debugging approach:
     * Run test queries and view the connector logs to ensure that your queries are propagating correctly
 
 
-## Limitations
-
-The following limitations exist with the Typescript connector. These limitations are all being tracked for future development.
-
-* Union types are not supported
-* Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
-
-
 ## Development
 
 For contribution to this connector you will want to have the following dependencies:
 
-* Rust (via [rustup](https://rustup.rs))
 * [Deno](https://deno.com)
 * (Optionally) [Docker](https://www.docker.com)
 
-In order to perform local development, first serve your functions:
+In order to perform local development on this codebase:
 
-* Copy `src/server.ts` into your test `functions/` directory
-* Switch to your functions directory: `cd functions/`
-* Serve yor functions with `deno run --allow-net --allow-sys --allow-env server.ts`
-  - `server.ts` loads `index.ts` to find your function definitions
+* Check out the repository: `git clone https://github.com/hasura/ndc-typescript-deno.git`
+* This assumes that you will be testing against function in `./functions`
+* Vendor the dependencies with `cd ./function && deno vendor -f index.ts`
+* Serve yor functions with `deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check ./src/main.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
+* The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
+* Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
 
-In a second shell session perform inference:
+Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage and development of this connector.
 
-* Vendor your dependencies with `deno vendor functions/index.ts`
-* Perform inference with `deno --allow-net --allow-sys src/infer.ts functions/index.ts > schema.json`
-
-Then start the connector:
-
-* With the command: `cargo run serve --configuration <(echo '{"schema_location": "./schema.json"}') --port 8100`
-* You can then test in a Husura project by referencing the connector on `http://localhost:8100`
-* Or using the `hasura3` tunnel commands to reference in a Hasura Cloud project
