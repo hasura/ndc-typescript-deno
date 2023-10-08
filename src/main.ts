@@ -60,6 +60,8 @@
  * [x] Test async
  * [x] Trim whitespace from descriptions and only include if there is content.
  * [ ] Update README.md
+ * [ ] Update README.md - Limitation: Even though the schema separates on purity, procedures can enter as either mutations or queries
+ * [ ] Should --watch also update vendor?
  * [ ] CI: Deno Hosting
  * [ ] CI: Docker build
  * [ ] CI: Tagging

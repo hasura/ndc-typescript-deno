@@ -102,29 +102,22 @@ type Payload<X> = {
 }
 
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
-  const keys = Object.keys(payload.args);
-
-  // Can return early if there are less then 2 args
-  // Might be good to find issues with schema alignment earlier though.
-  if(keys.length < 2) {
-    return Object.values(payload.args);
-  }
-
   const positions = functions[payload.function];
 
   if(!positions) {
     throw new Error(`Couldn't find function ${payload.function} in schema.`);
   }
 
-  const sorted = positions.map(k => payload.args[k]);
-  return sorted;
+  return positions.map(k => payload.args[k]);
 }
 
 // TODO: Do deeper field recursion once that's available
-function pruneFields<X>(fields: Struct<sdk.Field> | null | undefined, result: Struct<X>): Struct<X> {
-  if(!fields) {
+function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefined, result: Struct<X>): Struct<X> {
+  // This seems like a bug to request {} fields when expecting a scalar response...
+  // File with engine?
+  if(!fields || Object.keys(fields).length == 0) {
     // TODO: How to log with SDK?
-    console.error(`Warning: No fields present in query.`); // TODO: Add context for which function is being called
+    console.error(`Warning: No fields present in query for function ${func}.`); // TODO: Add context for which function is being called
     return result;
   }
 
@@ -155,7 +148,7 @@ async function query(
   };
   try {
     const result = await invoke(state.functions, state.info.positions, payload);
-    const pruned = pruneFields(requestFields, result);
+    const pruned = pruneFields(func, requestFields, result);
     return pruned;
   } catch(e) {
     throw new sdk.InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
