@@ -380,3 +380,4 @@ Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new)
 * [x] CI: Deno Hosting - Webhook added - Package: hasura_typescript_connector: https://deno.land/x/hasura_typescript_connector
 * [ ] CI: Docker build
 * [ ] CI: Tagging
+* [ ] Good error reporting for missing options and config
