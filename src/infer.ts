@@ -34,7 +34,6 @@ function isParameterDeclaration(node: ts.Node | undefined): node is ts.Parameter
 export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
   const filename = resolve(filename_arg || './functions/index.ts'); // TODO: Should this have already been established upstream?
   const vendorPath = resolve(vendor_arg || './vendor');
-  const vendorPathResolved = resolve(vendorPath);
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
 
@@ -82,7 +81,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
     console.error(`There were ${diagnostics.length} diagnostic errors.`);
     diagnostics.forEach(diagnostic => {
       if (diagnostic.file) {
-        if (! resolve(diagnostic.file.fileName).startsWith(vendorPathResolved)) {
+        if (! resolve(diagnostic.file.fileName).startsWith(vendorPath)) {
           fatal++;
         }
         const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
