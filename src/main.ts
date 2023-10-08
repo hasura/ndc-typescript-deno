@@ -51,14 +51,16 @@
  * [ ] Output usage information when running locally such as connector create command
  * [ ] Make sure that you can create a derivative custom connector from the base docker image
  * [x] Update SDK to 1.1.0
- * [ ] Check if response should be __value
+ * [x] Check if response should be __value - Yes
  * [ ] Test running from user scenario
  * [x] Test Docker
+ * [ ] Test Connector Create
  * [ ] Test Deno Deploy
  * [x] Precaching
  * [x] Test imports
  * [x] Test async
  * [x] Trim whitespace from descriptions and only include if there is content.
+ * [x] Test from console - Issues with Latest engine and MD format...
  * [ ] Update README.md
  * [ ] Update README.md - Limitation: Even though the schema separates on purity, procedures can enter as either mutations or queries
  * [ ] Should --watch also update vendor?
