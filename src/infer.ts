@@ -32,8 +32,8 @@ function isParameterDeclaration(node: ts.Node | undefined): node is ts.Parameter
 }
 
 export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
-  const filename = filename_arg || './functions/index.ts'; // TODO: Should this have already been established upstream?
-  const vendorPath = vendor_arg || './vendor';
+  const filename = resolve(filename_arg || './functions/index.ts'); // TODO: Should this have already been established upstream?
+  const vendorPath = resolve(vendor_arg || './vendor');
   const vendorPathResolved = resolve(vendorPath);
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
@@ -50,7 +50,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
     });
   } else {
     console.error(`Couldn't find import map: ${importMapPath}`);
-    Deno.exit(1);
+    // Deno.exit(1); -- TODO: Decide if we should fail here.
   }
 
   // TODO: This may not work when the user attempts to do this from a remote deno invocation
