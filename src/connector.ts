@@ -183,9 +183,9 @@ export const connector: sdk.Connector<Configuration, State> = {
       config: Configuration,
       _metrics: unknown
   ): Promise<State> {
-    const functionsArg = config.functions || './functions/index.ts'; // TODO: Resolve this upstream or in a helper.
-    const resolvedFunctionsPath = resolve(functionsArg); // Makes relative to CWD instead of the source
-    const functions = await import(resolvedFunctionsPath);
+    const functionsArg = resolve(config.functions || './functions/index.ts');
+    const functionsURL = `file://${functionsArg}`;
+    const functions = await import(functionsURL);
     const info = getInfo(config);
     return {
       functions,
