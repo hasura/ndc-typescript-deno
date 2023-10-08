@@ -119,7 +119,8 @@ Limitations:
 * Optional object fields are not currently supported
 * Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
 * Functions can be executed via both the `/query` and `/mutation` endpoints
-* Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
+
+Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
 
 ## Local Development of your Functions
@@ -151,11 +152,11 @@ In order to develop your functions locally the following is the recommended prac
   ```
   * Vendor the server's dependencies and yours inside the functions directory:
   * `deno vendor -f ./functions/index.ts --output ./functions/vendor`
-  * `deno vendor -f https://deno.land/x/hasura-typescript-deno/main.ts --output ./functions/vendor`
+  * `deno vendor -f https://deno.land/x/hasura_typescript_connector/main.ts --output ./functions/vendor`
   * This will put runtime dependencies into your `./functions` volume when deployed so that they do not need to be computed during deployment
 * Start the connector
 ```sh
-deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura-typescript-deno/main.ts serve --configuration ./config.json
+deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/main.ts serve --configuration ./config.json
 ```
 * (Optionally) Add a test-suite to your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
 
@@ -376,6 +377,6 @@ Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new)
 * [ ] Test suite
 * [ ] Move this TODO list into issues
 * [ ] Should --watch also update vendor?
-* [ ] CI: Deno Hosting
+* [x] CI: Deno Hosting - Webhook added - Package: hasura_typescript_connector: https://deno.land/x/hasura_typescript_connector
 * [ ] CI: Docker build
 * [ ] CI: Tagging
