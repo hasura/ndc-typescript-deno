@@ -9,13 +9,6 @@ RUN ls /app
 # Pre-cache inference results and dependencies
 RUN EARLY_ENTRYPOINT_EXIT=true sh /app/entrypoint.sh
 
-ENTRYPOINT [ "sh", "/app/entrypoint.sh", "deno"]
+ENTRYPOINT [ "sh", "/app/entrypoint.sh" ]
 
-CMD [ \
-  "run", \
-  "--allow-run", "--allow-net", "--allow-read", "--allow-write", "--allow-env", "--allow-sys", \
-  "--import-map", "vendor/import_map.json", \
-  "/app/main.ts", "serve", \
-  "--port", "8080", \
-  "--configuration", "/etc/connector/config.json" \
-  ]
+CMD [ ]

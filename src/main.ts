@@ -54,7 +54,12 @@
  * [x] Check if response should be __value - Yes
  * [ ] Test running from user scenario
  * [x] Test Docker
- * [ ] Test Connector Create
+ * [x] Test Connector Create
+  * [x] Dynamic inference
+    > hasura3 connector create lyndon:dogecoin:2 --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/lyndon/ts-sdk --config-file (echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "schemaMode": "INFER"}' | psub) --volume ./scratch/lyndon_pre-entry_1:/functions
+    > curl https://connector-4fa108cf-ae0b-4bf7-b252-a5d76c84926e-hyc5v23h6a-ue.a.run.app/schema
+    > curl https://connector-4fa108cf-ae0b-4bf7-b252-a5d76c84926e-hyc5v23h6a-ue.a.run.app/mutation -H 'content-type: application/json' -d '{"insert_schema":[],"operations":[{"type":"procedure","name":"transaction_count","arguments":{"address": "AC8Q9Z4i4sXcbW7TV1jqrjG1JEWMdLyzcy"}}],"collection_relationships":{}}' -vvv
+  * [ ] Pre-cached inference
  * [ ] Test Deno Deploy
  * [x] Precaching
  * [x] Test imports

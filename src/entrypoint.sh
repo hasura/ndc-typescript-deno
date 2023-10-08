@@ -25,7 +25,12 @@ if [ -f schema.json ]
 then
   echo "found existing inference results"
 else
-  deno run --allow-env --allow-sys --allow-read --allow-net /app/main.ts infer --vendor /functions/vendor index.ts >schema.json
+  deno run \
+    --allow-env --allow-sys --allow-read --allow-net \
+    --import-map vendor/import_map.json \
+    /app/main.ts infer \
+      --vendor /functions/vendor \
+      index.ts >schema.json
 fi
 
 if [ "$EARLY_ENTRYPOINT_EXIT" ]
@@ -34,4 +39,9 @@ then
   exit 0
 fi
 
-"$@"
+deno run \
+  --allow-run --allow-net --allow-read --allow-write --allow-env --allow-sys \
+  --import-map vendor/import_map.json \
+  /app/main.ts serve \
+  --port 8080 \
+  --configuration /etc/connector/config.json
