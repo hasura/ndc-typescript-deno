@@ -55,7 +55,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
   // TODO: This may not work when the user attempts to do this from a remote deno invocation
   const pathname = new URL('', import.meta.url).pathname;
   const dirname = pathname.replace(/\/[^\/]*$/,'');
-  const deno_lib_path = resolve(`${dirname}/deno.d.ts`); // Assumes that deno.d.ts and infer.ts will be co-located.
+  const deno_lib_path = `${dirname}/deno.d.ts`; // Assumes that deno.d.ts and infer.ts will be co-located.
 
   const program = ts.createProgram([filename], {
     target: ts.ScriptTarget.ES5,

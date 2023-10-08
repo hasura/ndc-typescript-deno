@@ -184,7 +184,7 @@ export const connector: sdk.Connector<Configuration, State> = {
       _metrics: unknown
   ): Promise<State> {
     const functionsArg = resolve(config.functions || './functions/index.ts');
-    const functionsURL = `file://${functionsArg}`;
+    const functionsURL = `file://${functionsArg}`; // NOTE: This is required to run directly from deno.land.
     const functions = await import(functionsURL);
     const info = getInfo(config);
     return {
