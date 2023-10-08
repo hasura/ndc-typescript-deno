@@ -145,7 +145,7 @@ In order to develop your functions locally the following is the recommended prac
   {
     "functions": "./functions/index.ts",
     "vendor": "./functions/vendor",
-    "schemaLocation": "./scratch/schema.json",
+    "schemaLocation": "./functions/schema.json",
     "schemaMode": "INFER"
   }
   ```
@@ -157,6 +157,7 @@ In order to develop your functions locally the following is the recommended prac
 ```sh
 deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura-typescript-deno/main.ts serve --configuration ./config.json
 ```
+* (Optionally) Add a test-suite to your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
 
 
 ## Deployment for Hasura Users
