@@ -39,9 +39,13 @@ then
   exit 0
 fi
 
+# The config is always the same for `connector create`
+echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
+  > /config.json
+
 deno run \
   --allow-run --allow-net --allow-read --allow-write --allow-env --allow-sys \
   --import-map vendor/import_map.json \
   /app/mod.ts serve \
   --port 8080 \
-  --configuration /etc/connector/config.json
+  --configuration /config.json
