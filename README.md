@@ -157,7 +157,7 @@ In order to develop your functions locally the following is the recommended prac
   * This will put runtime dependencies into your `./functions` volume when deployed so that they do not need to be computed during deployment
 * Start the connector
 ```sh
-deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector serve --configuration ./config.json
+deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 * (Optionally) Add a test-suite to your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
 
@@ -352,7 +352,7 @@ Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new)
 * [x] Remove any
 * [x] Split up entrypoint sources
 * [x] Support optional parameters
-* [ ] Deno run from deno.land...
+* [x] Deno run from deno.land...
 * [x] Put imports up the top
 * [x] Make sure deno.d.ts works with docker. Not required for local dev since they wil have Deno dev environment.
 * [ ] Output usage information when running locally such as connector create command

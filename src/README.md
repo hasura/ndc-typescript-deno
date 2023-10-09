@@ -23,7 +23,7 @@ Once your project is set up, run locally with:
 }
 
 > deno vendor -f ./functions/index.ts --output ./vendor`
-> deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector serve --configuration ./config.json
+> deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 
 ## Typescript Functions Format
