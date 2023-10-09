@@ -150,6 +150,7 @@ In order to develop your functions locally the following is the recommended prac
     "schemaMode": "INFER"
   }
   ```
+  * Make sure to .gitignore your computed `vendor` and `schema.json` files.
   * Vendor the server's dependencies and yours inside the functions directory:
   * `deno vendor -f ./functions/index.ts --output ./functions/vendor`
   * `deno vendor -f https://deno.land/x/hasura_typescript_connector/main.ts --output ./functions/vendor`
@@ -378,6 +379,6 @@ Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new)
 * [ ] Move this TODO list into issues
 * [ ] Should --watch also update vendor?
 * [x] CI: Deno Hosting - Webhook added - Package: hasura_typescript_connector: https://deno.land/x/hasura_typescript_connector
-* [ ] CI: Docker build
-* [ ] CI: Tagging
+* [x] CI: Docker build
+* [x] CI: Tagging
 * [ ] Good error reporting for missing options and config

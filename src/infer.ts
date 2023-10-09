@@ -52,9 +52,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
     // Deno.exit(1); -- TODO: Decide if we should fail here.
   }
 
-  // TODO: Use non-sync versions.
-  const deno_d_ts = Deno.makeTempFileSync({ suffix: ".ts" });
-
+  const deno_d_ts = Deno.makeTempFileSync({ suffix: ".d.ts" });
   Deno.writeTextFileSync(deno_d_ts, `
   /**
    * This module exists to be included as a library by the typescript compiler in infer.ts.
@@ -83,6 +81,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
     // '@/*': ['vendor/*'],
     paths: pathsMap
   });
+
+  Deno.removeSync(deno_d_ts);
 
   const diagnostics = ts.getPreEmitDiagnostics(program);
 
