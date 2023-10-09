@@ -31,6 +31,69 @@ function isParameterDeclaration(node: ts.Node | undefined): node is ts.Parameter
   return node?.kind === ts.SyntaxKind.Parameter;
 }
 
+const scalar_mappings: {[key: string]: string} = {
+  "string": "String",
+  "bool": "Boolean",
+  "boolean": "Boolean",
+  "number": "Float",
+};
+
+// TODO: Use ReadOnly?
+const no_ops: ScalarType = {
+  aggregate_functions: {},
+  comparison_operators: {},
+  update_operators: {},
+};
+
+function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse, name: string, ty: any): Type {
+  const type_str = checker.typeToString(ty);
+  const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
+  const type_name_lower: string = type_name.toLowerCase();
+
+  // PROMISE -- TODO: Don't recur on inner promises.
+  if (type_name == "Promise") {
+    const inner_type = ty.resolvedTypeArguments[0];
+    const inner_type_result = validate_type(checker, schema_response, name, inner_type);
+    return inner_type_result;
+  }
+
+  // ARRAY
+  // can we use ty.isArrayType?
+  else if (type_name == "Array") { // TODO: Why donesn't Promise<Array<String>> work?
+    const inner_type = ty.resolvedTypeArguments[0];
+    const inner_type_result = validate_type(checker, schema_response, name, inner_type);
+    return { type: 'array', element_type: inner_type_result };
+  }
+
+  // SCALAR
+  else if (scalar_mappings[type_name_lower]) {
+    const type_name_gql = scalar_mappings[type_name_lower];
+    schema_response.scalar_types[type_name_gql] = no_ops;
+    return { type: 'named', name: type_name_gql };
+  }
+
+  // OBJECT
+  else if (is_struct(ty)) {
+    // TODO: Detect objects by fields?
+    // TODO: Use .members vs. .properties
+    const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
+      const field_type = checker.getTypeAtLocation(v.declarations[0].type);
+      const field_type_validated = validate_type(checker, schema_response, `${name}_field_${k}`, field_type);
+      return [k, { arguments: {}, type: field_type_validated }];
+    }));
+
+    schema_response.object_types[name] = { fields };
+    return { type: 'named', name: name}
+  }
+
+  // UNHANDLED: Assume that the type is a scalar
+  else {
+    console.error(`Unable to validate type of ${name}: ${type_str}. Assuming that it is a scalar type.`);
+    schema_response.scalar_types[name] = no_ops;
+    return { type: 'named', name };
+  }
+}
+
 export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
   const filename = resolve(filename_arg || './functions/index.ts'); // TODO: Should this have already been established upstream?
   const vendorPath = resolve(vendor_arg || './vendor');
@@ -114,13 +177,6 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
   const checker = program.getTypeChecker();
 
-  // TODO: Use ReadOnly?
-  const no_ops: ScalarType = {
-    aggregate_functions: {},
-    comparison_operators: {},
-    update_operators: {},
-  };
-
   const schema_response: SchemaResponse = {
     scalar_types: {},
     object_types: {},
@@ -131,13 +187,6 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
   const positions: FunctionPositions = {};
 
-  const scalar_mappings: {[key: string]: string} = {
-    "string": "String",
-    "bool": "Boolean",
-    "boolean": "Boolean",
-    "number": "Float",
-  };
-
   function isExported(node: FunctionDeclaration): boolean {
     for(const mod of node.modifiers || []) {
         if(mod.kind == ts.SyntaxKind.ExportKeyword) {
@@ -145,55 +194,6 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
         }
     }
     return false;
-  }
-
-  const validate_type = (name: string, ty: any): Type => {
-    const type_str = checker.typeToString(ty);
-    const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
-    const type_name_lower: string = type_name.toLowerCase();
-
-    // PROMISE -- TODO: Don't recur on inner promises.
-    if (type_name == "Promise") {
-      const inner_type = ty.resolvedTypeArguments[0];
-      const inner_type_result = validate_type(name, inner_type);
-      return inner_type_result;
-    }
-
-    // ARRAY
-    // can we use ty.isArrayType?
-    else if (type_name == "Array") { // TODO: Why donesn't Promise<Array<String>> work?
-      const inner_type = ty.resolvedTypeArguments[0];
-      const inner_type_result = validate_type(name, inner_type);
-      return { type: 'array', element_type: inner_type_result };
-    }
-
-    // SCALAR
-    else if (scalar_mappings[type_name_lower]) {
-      const type_name_gql = scalar_mappings[type_name_lower];
-      schema_response.scalar_types[type_name_gql] = no_ops;
-      return { type: 'named', name: type_name_gql };
-    }
-
-    // OBJECT
-    else if (is_struct(ty)) {
-      // TODO: Detect objects by fields?
-      // TODO: Use .members vs. .properties
-      const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
-        const field_type = checker.getTypeAtLocation(v.declarations[0].type);
-        const field_type_validated = validate_type(`${name}_field_${k}`, field_type);
-        return [k, { arguments: {}, type: field_type_validated }];
-      }));
-
-      schema_response.object_types[name] = { fields };
-      return { type: 'named', name: name}
-    }
-
-    // UNHANDLED: Assume that the type is a scalar
-    else {
-      console.error(`Unable to validate type of ${name}: ${type_str}. Assuming that it is a scalar type.`);
-      schema_response.scalar_types[name] = no_ops;
-      return { type: 'named', name };
-    }
   }
 
   for (const src of program.getSourceFiles()) {
@@ -225,7 +225,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
         const call = fn_type.getCallSignatures()[0]!;
         const result_type = call.getReturnType();
         const result_type_name = `${fn_name}_output`;
-        const result_type_validated = validate_type(result_type_name, result_type);
+        const result_type_validated = validate_type(checker, schema_response, result_type_name, result_type);
         const description = fn_desc ? { description: fn_desc } : {}
 
         const fn: FunctionInfo = {
@@ -242,7 +242,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker)).trim();
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
           const type_name = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
-          const param_type_validated = validate_type(type_name, param_type); // E.g. `bio_arguments_username`
+          const param_type_validated = validate_type(checker, schema_response, type_name, param_type); // E.g. `bio_arguments_username`
           const description = param_desc ? { description: param_desc } : {}
 
           positions[fn.name].push(param_name);
