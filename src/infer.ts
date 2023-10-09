@@ -45,6 +45,10 @@ const no_ops: ScalarType = {
   update_operators: {},
 };
 
+// TODO: Use standard logging from SDK
+const LOG_LEVEL = Deno.env.get("LOG_LEVEL") || "INFO";
+const DEBUG = LOG_LEVEL == 'DEBUG';
+
 function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse, name: string, ty: any): Type {
   const type_str = checker.typeToString(ty);
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
@@ -198,12 +202,16 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
   for (const src of program.getSourceFiles()) {
     if (src.isDeclarationFile) {
-      console.error(`Skipping analysis of declaration source: ${src.fileName}`);
+      if(DEBUG) {
+        console.error(`Skipping analysis of declaration source: ${src.fileName}`);
+      }
       continue;
     }
 
     if (resolve(src.fileName) != resolve(filename)) {
-      console.error(`Skipping analysis of source with resolve inconsistency: ${src.fileName}`);
+      if(DEBUG) {
+        console.error(`Skipping analysis of source with resolve inconsistency: ${src.fileName}`);
+      }
       continue;
     }
 
