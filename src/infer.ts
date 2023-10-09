@@ -52,19 +52,30 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
     // Deno.exit(1); -- TODO: Decide if we should fail here.
   }
 
-  // TODO: This may not work when the user attempts to do this from a remote deno invocation
-  const pathname = new URL('', import.meta.url).pathname;
-  const dirname = pathname.replace(/\/[^\/]*$/,'');
-  const deno_lib_path = resolve(`${dirname}/deno.d.ts`); // Assumes that deno.d.ts and infer.ts will be co-located.
-  pathsMap['/deno.d.ts'] = [deno_lib_path];
-  console.error([pathname, dirname, deno_lib_path, pathsMap]);
+  // TODO: Use non-sync versions.
+  const deno_d_ts = Deno.makeTempFileSync({ suffix: ".ts" });
+
+  Deno.writeTextFileSync(deno_d_ts, `
+  /**
+   * This module exists to be included as a library by the typescript compiler in infer.ts.
+   * The reason for this is that the user is likely to use the Deno dev tools when developing their functions.
+   * And they will have Deno in scope.
+   * This ensures that these references will typecheck correctly in infer.ts.
+   */
+
+  export {};
+
+  declare global {
+    var Deno: any
+  }
+  `);
 
   const program = ts.createProgram([filename], {
     target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
     // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
-    lib: ['lib.d.ts', 'lib.es2017.d.ts', deno_lib_path],
+    lib: ['lib.d.ts', 'lib.es2017.d.ts', resolve(deno_d_ts)],
     allowJs: true,
     allowImportingTsExtensions: true,
     noEmit: true,
