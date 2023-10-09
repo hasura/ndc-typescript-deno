@@ -25,7 +25,7 @@ then
   echo "found existing inference results"
 else
   deno run \
-    --allow-env --allow-sys --allow-read --allow-net \
+    --allow-env --allow-sys --allow-read --allow-net --allow-write \
     --import-map vendor/import_map.json \
     /app/mod.ts infer \
       --vendor /functions/vendor \
