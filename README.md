@@ -9,6 +9,7 @@ The Typescript (Deno) Connector allows a running connector to be inferred from a
 Useful Links:
 
 * [Typescript Deno Connector on the NDC Hub](https://hasura.io/connectors/typescript-deno)
+* [Typescript Deno Connector on deno.com](https://deno.land/x/hasura_typescript_connector)
 * [Hasura V3 Documentation](https://hasura.io/docs/3.0)
 * [Hasura CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
 * [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
@@ -322,64 +323,3 @@ In order to perform local development on this codebase:
 * Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage and development of this connector.
-
-
-## TODO
-
-* [x] Create PR: https://github.com/hasura/ndc-typescript-deno/pull/12
-* [x] Share SDK issues
-* [x] Resolve import errors for Deno (via import map?) for github.com/hasura/ndc-sdk-typescript
-* [x] Convert server.ts to connector protocol in `connector.ts`
-* [x] Remove rust harness
-* [x] Update docker to leverage deno implementation
-* [x] Do start-time inference on functions
-* [x] Have schema cache respecting flag --schema: /schema.json - Creates if missing, uses if present
-* [x] Manage src locations better
-* [x] CMD parsing library
-* [!] Subprocess library (Not required)
-* [x] File-reading library (Builtin)
-* [x] Have local dev supported by `deno --watch`
-* [x] Dynamic invocation of functions from index module
-* [x] Seperate infer command for convenience
-* [x] --vendor flag for explicit vendor location
-* [x] Reimplement async dispatch
-* [x] Reimplement position derivation from schema
-* [x] Reimplement arg position schmea correlation
-* [x] Handle exceptions
-* [x] Mutations
-* [ ] Provide additional exception detail for anticipated failures
-* [x] Depend on TS SDK
-* [x] Remove any
-* [x] Split up entrypoint sources
-* [x] Support optional parameters
-* [x] Deno run from deno.land...
-* [x] Put imports up the top
-* [x] Make sure deno.d.ts works with docker. Not required for local dev since they wil have Deno dev environment.
-* [ ] Output usage information when running locally such as connector create command
-* [ ] Make sure that you can create a derivative custom connector from the base docker image
-* [x] Update SDK to 1.1.0
-* [x] Check if response should be __value - Yes
-* [x] Test running from user scenario
-* [x] Test Docker
-* [x] Test Connector Create
-* [x] Dynamic inference
-  > hasura3 connector create lyndon:dogecoin:2 --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/lyndon/ts-sdk --config-file (echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "schemaMode": "INFER"}' | psub) --volume ./scratch/lyndon_pre-entry_1:/functions
-  > curl https://connector-4fa108cf-ae0b-4bf7-b252-a5d76c84926e-hyc5v23h6a-ue.a.run.app/schema
-  > curl https://connector-4fa108cf-ae0b-4bf7-b252-a5d76c84926e-hyc5v23h6a-ue.a.run.app/mutation -H 'content-type: application/json' -d '{"insert_schema":[],"operations":[{"type":"procedure","name":"transaction_count","arguments":{"address": "AC8Q9Z4i4sXcbW7TV1jqrjG1JEWMdLyzcy"}}],"collection_relationships":{}}' -vvv
-* [x] Pre-cached inference
-* [ ] Test Deno Deploy
-* [x] Precaching
-* [x] Test imports
-* [x] Test async
-* [x] Trim whitespace from descriptions and only include if there is content.
-* [x] Test from console - Issues with Latest engine and MD format...
-* [x] Update README.md
-* [x] Update README.md - Limitation: Even though the schema separates on purity, procedures can enter as either mutations or queries
-* [ ] Test suite
-* [ ] Move this TODO list into issues
-* [ ] Should --watch also update vendor?
-* [x] CI: Deno Hosting - Webhook added - Package: hasura_typescript_connector: https://deno.land/x/hasura_typescript_connector
-* [x] CI: Docker build
-* [x] CI: Tagging
-* [ ] Good error reporting for missing options and config - Test
-* [x] Rename `main.ts` to `mod.ts` or `index.ts` to avoid having to explicitly mention it in `deno run`
