@@ -18,7 +18,7 @@ then
   echo "found existing vendor results"
 else
   deno vendor -f index.ts
-  deno vendor -f /app/main.ts
+  deno vendor -f /app/mod.ts
 fi
 
 if [ -f schema.json ]
@@ -28,7 +28,7 @@ else
   deno run \
     --allow-env --allow-sys --allow-read --allow-net \
     --import-map vendor/import_map.json \
-    /app/main.ts infer \
+    /app/mod.ts infer \
       --vendor /functions/vendor \
       index.ts >schema.json
 fi
@@ -42,6 +42,6 @@ fi
 deno run \
   --allow-run --allow-net --allow-read --allow-write --allow-env --allow-sys \
   --import-map vendor/import_map.json \
-  /app/main.ts serve \
+  /app/mod.ts serve \
   --port 8080 \
   --configuration /etc/connector/config.json

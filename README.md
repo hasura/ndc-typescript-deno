@@ -153,11 +153,11 @@ In order to develop your functions locally the following is the recommended prac
   * Make sure to .gitignore your computed `vendor` and `schema.json` files.
   * Vendor the server's dependencies and yours inside the functions directory:
   * `deno vendor -f ./functions/index.ts --output ./functions/vendor`
-  * `deno vendor -f https://deno.land/x/hasura_typescript_connector/main.ts --output ./functions/vendor`
+  * `deno vendor -f https://deno.land/x/hasura_typescript_connector/mod.ts --output ./functions/vendor`
   * This will put runtime dependencies into your `./functions` volume when deployed so that they do not need to be computed during deployment
 * Start the connector
 ```sh
-deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/main.ts serve --configuration ./config.json
+deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector serve --configuration ./config.json
 ```
 * (Optionally) Add a test-suite to your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
 
@@ -317,7 +317,7 @@ In order to perform local development on this codebase:
 * Check out the repository: `git clone https://github.com/hasura/ndc-typescript-deno.git`
 * This assumes that you will be testing against function in `./functions`
 * Vendor the dependencies with `cd ./function && deno vendor -f index.ts`
-* Serve yor functions with `deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check ./src/main.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
+* Serve yor functions with `deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check ./src/mod.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
 * The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
 * Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
 
@@ -381,4 +381,5 @@ Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new)
 * [x] CI: Deno Hosting - Webhook added - Package: hasura_typescript_connector: https://deno.land/x/hasura_typescript_connector
 * [x] CI: Docker build
 * [x] CI: Tagging
-* [ ] Good error reporting for missing options and config
+* [ ] Good error reporting for missing options and config - Test
+* [x] Rename `main.ts` to `mod.ts` or `index.ts` to avoid having to explicitly mention it in `deno run`
