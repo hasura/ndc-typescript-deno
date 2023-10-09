@@ -11,7 +11,6 @@ set -e
 echo "$@"
 
 cd /functions
-cp /app/deno.d.ts ./ # TODO: Find out if there's a better way to put this in scope
 
 if [ -d vendor ]
 then
