@@ -171,23 +171,13 @@ You will need:
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * (Optionally) A value to use with `SERVICE_TOKEN_SECRET`
 * a typescript sources directory. E.g. `--volume ./my_functions_directory:/functions`
-* A configuration file containing:
-
-```json
-{
-  "functions": "/functions/index.ts",
-  "vendor": "/functions/vendor",
-  "schemaMode": "READ",
-  "schemaLocation": "/functions/schema.json"
-}
-```
 
 Create the connector:
 
 ```
 hasura3 connector create my-cool-connector:v1 \
   --github-repo-url https://github.com/hasura/ndc-typescript-deno/tree/main \
-  --config-file ./config.json \
+  --config-file <(echo '{}') \
   --volume ./functions:/functions \
   --env SERVICE_TOKEN_SECRET=MY-SERVICE-TOKEN # (optional)
 ```
