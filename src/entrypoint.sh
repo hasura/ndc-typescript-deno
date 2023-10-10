@@ -8,8 +8,6 @@
 
 set -e
 
-echo "$@"
-
 cd /functions
 
 if [ -d vendor ]
