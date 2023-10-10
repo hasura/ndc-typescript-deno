@@ -268,7 +268,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
           positions[fn.name].push(param_name);
 
-          // TODO: Creating the structure for optional types should be done by 'validate_type'.
+          // TODO: https://github.com/hasura/ndc-typescript-deno/issues/36
+          //       Creating the structure for optional types should be done by 'validate_type'.
           //       Perhaps give an 'optional' boolean argument to 'validate_type' constructed in this way for params.
           function optionalParameterType(): Type {
             if(param) {
