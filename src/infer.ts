@@ -141,6 +141,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string, perform_
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
 
+  // NOTE: We can't just move this inside the else branch of the exists importMap check
+  //       Since the dependencies may change when updating your functions.
   if(perform_vendor) {
     pre_vendor(vendorPath, filename);
   }
