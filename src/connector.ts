@@ -40,13 +40,22 @@ export const EMPTY_SCHEMA = {
   scalar_types: {},
 };
 
+type Payload<X> = {
+  function: string,
+  args: Struct<X>
+}
+
+
+///////////////////// Helper Functions /////////////////////
 
 
 /**
- * Helper functions
+ * Performs analysis on the supplied program.
+ * Expects that if there are dependencies then they will have been vendored.
+ * 
+ * @param cmdObj 
+ * @returns Schema and argument position information
  */
-
-// TODO: Consider making this async
 export function getInfo(cmdObj: Configuration): ProgramInfo {
   const schemaMode = cmdObj.schemaMode || 'INFER';
   switch(schemaMode) {
@@ -65,7 +74,7 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
     }
     case 'INFER': {
       console.error(`Inferring schema with map location ${cmdObj.vendor}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendor); // TODO: entrypoint param
+      const info = programInfo(cmdObj.functions, cmdObj.vendor);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         console.error(`Writing schema to ${cmdObj.schemaLocation}`);
@@ -81,14 +90,20 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
 }
 
 /**
- * @param payload such as {function: "concat", args: ["hello", " ", "world"]}
- * @returns 
+ * Performs invocation of the requested function.
+ * Assembles the arguments into the correct order.
+ * This doesn't catch any exceptions.
+ * 
+ * @param functions 
+ * @param positions 
+ * @param payload 
+ * @returns the result of invocation with no wrapper
  */
 async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
   const ident = payload.function;
   const func = functions[ident as any] as any;
   const args = reposition(positions, payload);
-  // TODO: Exception handling.
+
   let result = func.apply(null, args);
   if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
     result = await result;
@@ -96,11 +111,14 @@ async function invoke(functions: any, positions: FunctionPositions, payload: Pay
   return result;
 }
 
-type Payload<X> = {
-  function: string,
-  args: Struct<X>
-}
-
+/**
+ * This takes argument position information and a payload of function
+ * and named arguments and returns the correctly ordered arguments ready to be applied.
+ * 
+ * @param functions 
+ * @param payload 
+ * @returns An array of the function's arguments in the definition order
+ */
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
   const positions = functions[payload.function];
 
@@ -111,13 +129,13 @@ function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array
   return positions.map(k => payload.args[k]);
 }
 
-// TODO: Do deeper field recursion once that's available
+// TODO: https://github.com/hasura/ndc-typescript-deno/issues/26 Do deeper field recursion once that's available
 function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefined, result: Struct<X>): Struct<X> {
   // This seems like a bug to request {} fields when expecting a scalar response...
   // File with engine?
   if(!fields || Object.keys(fields).length == 0) {
-    // TODO: How to log with SDK?
-    console.error(`Warning: No fields present in query for function ${func}.`); // TODO: Add context for which function is being called
+    // TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 How to log with SDK?
+    console.error(`Warning: No fields present in query for function ${func}.`);
     return result;
   }
 
@@ -129,7 +147,7 @@ function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefin
         response[k] = result[v.column];
         break;
       default:
-        console.error(`field of type ${v.type} is not supported.`); // TODO: Add context for which function is being called
+        console.error(`Function ${func} field of type ${v.type} is not supported.`);
     }
   }
 
@@ -209,7 +227,7 @@ export const connector: sdk.Connector<Configuration, State> = {
     return conf;
   },
 
-  // TODO: Does this add in the defaults?
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 Make this add in the defaults
   update_configuration(configuration: Configuration): Promise<Configuration> {
     return Promise.resolve(configuration);
   },
@@ -223,15 +241,16 @@ export const connector: sdk.Connector<Configuration, State> = {
     return Promise.resolve(result.schema);
   },
 
-  // TODO: What do we want explain to do in this scenario?
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?
   explain(
     _configuration: Configuration,
     _: State,
     _request: sdk.QueryRequest
   ): Promise<sdk.ExplainResponse> {
-    throw new Error('TODO: Implement `explain`.');
+    throw new Error('Implementation of `explain` pending.');
   },
 
+  // NOTE: query and mutation both make all functions available and discrimination is performed by the schema
   async query(
     _configuration: Configuration,
     state: State,
@@ -274,22 +293,22 @@ export const connector: sdk.Connector<Configuration, State> = {
     }
   },
 
-  // TODO: Deprecated
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/30 Deprecated
   get_read_regions(_: Configuration): string[] {
     return [];
   },
 
-  // TODO: Deprecated
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/30 Deprecated
   get_write_regions(_: Configuration): string[] {
     return [];
   },
 
-  // TODO: https://qdrant.github.io/qdrant/redoc/index.html#tag/service/operation/healthz
+  // If the connector starts successfully it should be healthy
   health_check(_: Configuration, __: State): Promise<undefined> {
     return Promise.resolve(undefined);
   },
 
-  // TODO: https://qdrant.github.io/qdrant/redoc/index.html#tag/service/operation/metrics
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/29 https://qdrant.github.io/qdrant/redoc/index.html#tag/service/operation/metrics
   fetch_metrics(_: Configuration, __: State): Promise<undefined> {
     return Promise.resolve(undefined);
   },

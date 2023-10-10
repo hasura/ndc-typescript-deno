@@ -1,3 +1,13 @@
+
+/**
+ * This module provides the inference implementation for the connector.
+ * It relies on the Typescript compiler to perform the heavy lifting.
+ * 
+ * The exported function that is intended for use is `programInfo`.
+ * 
+ * Dependencies are required to be vendored before invocation. 
+ */
+
 import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
 import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
@@ -12,7 +22,7 @@ export type ProgramInfo = {
   positions: FunctionPositions
 }
 
-// TODO: Specialise the any to ty.Type or something similar
+// TODO: https://github.com/hasura/ndc-typescript-deno/issues/31 Specialise the any to ty.Type or something similar
 function is_struct(ty: any): boolean {
   return (ty?.members?.size || 0) > 0;
 }
@@ -38,14 +48,14 @@ const scalar_mappings: {[key: string]: string} = {
   "number": "Float",
 };
 
-// TODO: Use ReadOnly?
+// NOTE: This should be able to be made read only
 const no_ops: ScalarType = {
   aggregate_functions: {},
   comparison_operators: {},
   update_operators: {},
 };
 
-// TODO: Use standard logging from SDK
+// TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 Use standard logging from SDK
 const LOG_LEVEL = Deno.env.get("LOG_LEVEL") || "INFO";
 const DEBUG = LOG_LEVEL == 'DEBUG';
 
@@ -54,7 +64,9 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
   const type_name_lower: string = type_name.toLowerCase();
 
-  // PROMISE -- TODO: Don't recur on inner promises.
+  // PROMISE
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/32 There is no recursion that resolves inner promises.
+  //       Nested promises should be resolved in the function definition.
   if (type_name == "Promise") {
     const inner_type = ty.resolvedTypeArguments[0];
     const inner_type_result = validate_type(checker, schema_response, name, inner_type);
@@ -62,8 +74,8 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   }
 
   // ARRAY
-  // can we use ty.isArrayType?
-  else if (type_name == "Array") { // TODO: Why donesn't Promise<Array<String>> work?
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
+  else if (type_name == "Array") {
     const inner_type = ty.resolvedTypeArguments[0];
     const inner_type_result = validate_type(checker, schema_response, name, inner_type);
     return { type: 'array', element_type: inner_type_result };
@@ -77,9 +89,8 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   }
 
   // OBJECT
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
   else if (is_struct(ty)) {
-    // TODO: Detect objects by fields?
-    // TODO: Use .members vs. .properties
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
       const field_type_validated = validate_type(checker, schema_response, `${name}_field_${k}`, field_type);
@@ -99,7 +110,8 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
 }
 
 export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
-  const filename = resolve(filename_arg || './functions/index.ts'); // TODO: Should this have already been established upstream?
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
+  const filename = resolve(filename_arg || './functions/index.ts');
   const vendorPath = resolve(vendor_arg || './vendor');
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
@@ -115,8 +127,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
       }
     });
   } else {
+    // NOTE: We allow the import map to be optional but dependency lookup will fail if it was required.
     console.error(`Couldn't find import map: ${importMapPath}`);
-    // Deno.exit(1); -- TODO: Decide if we should fail here.
   }
 
   const deno_d_ts = Deno.makeTempFileSync({ suffix: ".d.ts" });
@@ -249,7 +261,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
           const param_name = param.getName();
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker)).trim();
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
-          const type_name = `${fn_name}_arguments_${param_name}`; // TODO: Use the user's given type name if one exists.
+          // TODO: https://github.com/hasura/ndc-typescript-deno/issues/34 Use the user's given type name if one exists.
+          const type_name = `${fn_name}_arguments_${param_name}`;
           const param_type_validated = validate_type(checker, schema_response, type_name, param_type); // E.g. `bio_arguments_username`
           const description = param_desc ? { description: param_desc } : {}
 
