@@ -165,8 +165,6 @@ export function programInfo(filename_arg?: string, vendor_arg?: string): Program
 
   const diagnostics = ts.getPreEmitDiagnostics(program);
 
-  // console.debug(diagnostics);
-
   // https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
   if (diagnostics.length) {
     let fatal = 0;
