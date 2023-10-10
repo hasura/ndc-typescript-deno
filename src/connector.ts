@@ -2,6 +2,7 @@
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
+import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
 /**
  * Implementation of the Connector interface for Deno connector.
@@ -15,15 +16,43 @@ export type State = {
 
 export interface Configuration {
   functions: string,
-  port?: number, // Is this hard-coded in start?
-  hostname?: string,
+  port?: number, // Included only for punning Connector.start()
+  hostname?: string, // Included only for punning Connector.start()
   schemaMode?: 'READ' | 'INFER',
   schemaLocation?: string,
   vendor?: string,
   preVendor?: boolean,
 }
 
-export const CONFIGURATION_SCHEMA: unknown = { }; // Could get this from @json-schema-tools/meta-schema
+export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
+  description: 'Typescript (Deno) Connector Configuration',
+  type: 'object',
+  required: [ 'functions' ],
+  properties:
+  {
+    functions: {
+      description: 'Location of your functions entrypoint (default: ./functions/index.ts)',
+      type: 'string'
+    },
+    vendor: {
+      description: 'Location of dependencies vendor folder (optional)',
+      type: 'string'
+    },
+    preVendor: {
+      description: 'Perform vendoring prior to inference in a sub-process (default: false)',
+      type: 'boolean'
+    },
+    schemaMode:  {
+      description: 'INFER the schema from your functions, or READ it from a file.',
+      type: "string",
+      enum: ["READ", "INFER"]
+    },
+    schemaLocation: {
+      description: 'Location of your schema file. schemaMode=READ reads the file, schemaMode=INFER writes the file (optional)',
+      type: 'string'
+    },
+  }
+};
 
 export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
@@ -216,14 +245,14 @@ export const connector: sdk.Connector<Configuration, State> = {
     return CAPABILITIES_RESPONSE;
   },
 
-  get_configuration_schema(): any {
+  get_configuration_schema(): JSONSchemaObject {
     return CONFIGURATION_SCHEMA;
   },
 
   make_empty_configuration(): Configuration {
     const conf: Configuration = {
       functions: './functions/index.ts',
-      vendor: './functions/vendor'
+      vendor: './vendor'
     };
     return conf;
   },
