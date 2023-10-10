@@ -9,6 +9,9 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+* Ported main server from Rust to pure Deno
+* Support exposing optional function parameters
+
 ## v0.8
 
 Required entrypoint: /functions/index.ts;
