@@ -109,12 +109,41 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   }
 }
 
-export function programInfo(filename_arg?: string, vendor_arg?: string): ProgramInfo {
+/**
+ * Executes `deno vendor` in a subprocess as a conveneience.
+ * 
+ * @param vendorPath
+ * @param filename
+ */
+function pre_vendor(vendorPath: string, filename: string) {
+  // Exampe taken from:
+  // https://docs.deno.com/runtime/tutorials/subprocess
+  const deno_exec_path = Deno.execPath();
+  const vendor_args = [ "vendor", "--output", vendorPath, "--force", filename ];
+
+  console.error(`Vendoring dependencies: ${[deno_exec_path, ...vendor_args].join(" ")}`);
+
+  const vendor_command = new Deno.Command(deno_exec_path, { args: vendor_args });
+  const { code, stdout, stderr } = vendor_command.outputSync();
+
+  if(code !== 0) {
+    console.error(`Error: Got code ${code} during deno vendor operation.`)
+    console.error(`stdout: ${new TextDecoder().decode(stdout)}`);
+    console.error(`stderr: ${new TextDecoder().decode(stderr)}`);
+    Deno.exit(1);
+  }
+}
+
+export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
   const filename = resolve(filename_arg || './functions/index.ts');
   const vendorPath = resolve(vendor_arg || './vendor');
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
+
+  if(perform_vendor) {
+    pre_vendor(vendorPath, filename);
+  }
 
   if (existsSync(importMapPath)) {
     const importString = Deno.readTextFileSync(importMapPath);

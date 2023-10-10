@@ -19,10 +19,10 @@ Once your project is set up, run locally with:
 {
   "functions": "./functions/index.ts",
   "vendor": "./vendor",
+  "preVendor": true,
   "schemaMode": "INFER"
 }
 
-> deno vendor -f ./functions/index.ts --output ./vendor`
 > deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 

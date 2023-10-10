@@ -20,7 +20,7 @@ program
   .command('infer <entrypoint>')
   .option('-v, --vendor <path>', 'Vendor location (optional)')
   .action(function (entrypoint, cmdObj) {
-    const output = programInfo(entrypoint, cmdObj.vendor);
+    const output = programInfo(entrypoint, cmdObj.vendor, cmdObj.preVendor);
     console.log(JSON.stringify(output));
   });
 

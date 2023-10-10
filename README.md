@@ -137,25 +137,21 @@ In order to develop your functions locally the following is the recommended prac
 {
   "functions": "./functions/index.ts",
   "vendor": "./vendor",
+  "preVendor": true,
   "schemaMode": "INFER"
 }
 ```
-* Vendor your dependencies with:
-* `deno vendor -f ./functions/index.ts --output ./vendor`
 * (Optionally) If you want your development vendor and inference resources to be used to speed up deployment, add the following to your `./config.json`:
   ```json
   {
     "functions": "./functions/index.ts",
     "vendor": "./functions/vendor",
+    "preVendor": true,
     "schemaLocation": "./functions/schema.json",
     "schemaMode": "INFER"
   }
   ```
   * Make sure to .gitignore your computed `vendor` and `schema.json` files.
-  * Vendor the server's dependencies and yours inside the functions directory:
-  * `deno vendor -f ./functions/index.ts --output ./functions/vendor`
-  * `deno vendor -f https://deno.land/x/hasura_typescript_connector/mod.ts --output ./functions/vendor`
-  * This will put runtime dependencies into your `./functions` volume when deployed so that they do not need to be computed during deployment
 * Start the connector
 ```sh
 deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-env --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json

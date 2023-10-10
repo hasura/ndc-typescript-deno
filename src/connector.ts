@@ -19,7 +19,8 @@ export interface Configuration {
   hostname?: string,
   schemaMode?: 'READ' | 'INFER',
   schemaLocation?: string,
-  vendor?: string
+  vendor?: string,
+  preVendor?: boolean,
 }
 
 export const CONFIGURATION_SCHEMA: unknown = { }; // Could get this from @json-schema-tools/meta-schema
@@ -74,7 +75,7 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
     }
     case 'INFER': {
       console.error(`Inferring schema with map location ${cmdObj.vendor}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendor);
+      const info = programInfo(cmdObj.functions, cmdObj.vendor, cmdObj.preVendor);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         console.error(`Writing schema to ${cmdObj.schemaLocation}`);
