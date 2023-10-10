@@ -38,7 +38,7 @@ An example Typescript entrypoint:
 
 import { Hash, encode } from "https://deno.land/x/checksum@1.2.0/mod.ts";
 
-export function make_password_hash(pw: string): string {
+export function make_bad_password_hash(pw: string): string {
   return new Hash("md5").digest(encode(pw)).hex();
 }
 
