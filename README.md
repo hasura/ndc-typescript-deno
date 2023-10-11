@@ -159,6 +159,31 @@ deno run --allow-sys --allow-run --allow-net --allow-read --allow-write --allow-
 * (Optionally) Add a test-suite to your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
 
 
+## Config Format
+
+The configuration object has the following properties:
+
+```
+  functions      (string): Location of your functions entrypoint (default: ./functions/index.ts)
+  vendor         (string): Location of dependencies vendor folder (optional)
+  preVendor     (boolean): Perform vendoring prior to inference in a sub-process (default: false)
+  schemaMode     (string): INFER the schema from your functions, or READ it from a file.
+  schemaLocation (string): Location of your schema file. schemaMode=READ reads the file, schemaMode=INFER writes the file (optional)
+```
+
+NOTE: When deploying the connector with the `connector create` command your config is currently replaced with:
+
+```
+{
+  "functions": "/functions/index.ts",
+  "vendor": "/functions/vendor",
+  "schemaMode": "READ",
+  "schemaLocation": "/functions/schema.json"
+}
+```
+
+This means that your functions volume will have to be mounted to `/functions`.
+
 ## Deployment for Hasura Users
 
 You will need:

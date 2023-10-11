@@ -58,16 +58,10 @@ export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
     query: { },
-    mutations: { },
+    mutations: {
+      returning: {}
+    },
   },
-};
-
-export const EMPTY_SCHEMA = {
-  collections: [],
-  functions: [],
-  procedures: [],
-  object_types: {},
-  scalar_types: {},
 };
 
 type Payload<X> = {
