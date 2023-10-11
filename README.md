@@ -333,4 +333,6 @@ In order to perform local development on this codebase:
 * The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
 * Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
 
+If you are fixing a bug, then please consider adding a test case to `./src/test/data`.
+
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage and development of this connector.
