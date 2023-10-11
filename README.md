@@ -238,10 +238,12 @@ webhook:
   mode: "POST"
   webhookUrl: "https://auth.pro.hasura.io/webhook/ddn?role=admin"
 ---
-kind: DataSource
-name: my_connector
-dataConnectorUrl:
-  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
+kind: DataConnector
+version: v1
+definition:
+  name: my_connector
+  url:
+    singleUrl: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
 ```
 
 If you have the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura) installed
@@ -265,27 +267,32 @@ If you don't wish to have your connector publically accessible then you must set
 Your Hasura project metadata must then set a matching bearer token:
 
 ```yaml
-kind: DataSource
-name: sendgrid
-dataConnectorUrl:
-  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
-auth:
-  type: Bearer
-  token: "SUPER_SECRET_TOKEN_XXX123"
+kind: DataConnector
+version: v1
+definition:
+  name: my_connector
+  url:
+    singleUrl: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
+  headers:
+    Authorization:
+      value: "Bearer SUPER_SECRET_TOKEN_XXX123"
 ```
 
 While you can specify the token inline as above, it is recommended to use the Hasura secrets functionality for this purpose:
 
 ```yaml
-kind: DataSource
-name: sendgrid
-dataConnectorUrl:
-  url: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
-auth:
-  type: Bearer
-  token:
-    valueFromSecret: CONNECTOR_TOKEN
+kind: DataConnector
+version: v1
+definition:
+  name: my_connector
+  url:
+    singleUrl: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
+  headers:
+    Authorization:
+      valueFromSecret: BEARER_TOKEN_SECRET
 ```
+
+NOTE: This secret should contain the `Bearer ` prefix.
 
 ## Debugging Issues
 
