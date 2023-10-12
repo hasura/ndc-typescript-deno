@@ -12,8 +12,8 @@ import { programInfo } from './infer.ts'
 import { connector   } from './connector.ts'
 
 const inferCommand = new commander.Command("infer")
-  .addArgument(new commander.Argument('<path>', 'Typescript source entrypoint'))
-  .addOption(new commander.Option('-v, --vendor <path>', 'Vendor location (optional)'))
+  .argument('<path>', 'Typescript source entrypoint')
+  .option('-v, --vendor <path>', 'Vendor location (optional)')
   .action((entrypoint, cmdObj, _command) => {
     const output = programInfo(entrypoint, cmdObj.vendor, cmdObj.preVendor);
     console.log(JSON.stringify(output));
