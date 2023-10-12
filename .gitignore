@@ -3,3 +3,4 @@
 .vscode/
 vendor/
 scratch/
+src/test/vendor

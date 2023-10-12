@@ -94,7 +94,7 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
       const field_type_validated = validate_type(checker, schema_response, `${name}_field_${k}`, field_type);
-      return [k, { arguments: {}, type: field_type_validated }];
+      return [k, { type: field_type_validated }];
     }));
 
     schema_response.object_types[name] = { fields };

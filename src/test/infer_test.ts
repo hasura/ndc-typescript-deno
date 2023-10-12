@@ -66,3 +66,91 @@ Deno.test("Inference", () => {
     }
   });
 });
+
+Deno.test("Complex Inference", () => {
+  const program_path = path.fromFileUrl(import.meta.resolve('./data/complex.ts'));
+  const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
+  const program_results = infer.programInfo(program_path, vendor_path, true);
+
+  test.assertEquals(program_results, {
+    positions: {
+      complex: [
+        "a",
+        "b",
+        "c",
+      ],
+    },
+    schema: {
+      collections: [],
+      functions: [],
+      object_types: {
+        complex_output: {
+          fields: {
+            bod: {
+              type: {
+                name: "String",
+                type: "named",
+              },
+            },
+            num: {
+              type: {
+                name: "Float",
+                type: "named",
+              },
+            },
+            str: {
+              type: {
+                name: "String",
+                type: "named",
+              },
+            },
+          },
+        },
+      },
+      procedures: [
+        {
+          arguments: {
+            a: {
+              type: {
+                name: "Float",
+                type: "named",
+              },
+            },
+            b: {
+              type: {
+                name: "Float",
+                type: "named",
+              },
+            },
+            c: {
+              type: {
+                type: "nullable",
+                underlying_type: {
+                  name: "String",
+                  type: "named",
+                },
+              },
+            },
+          },
+          name: "complex",
+          result_type: {
+            name: "complex_output",
+            type: "named",
+          },
+        },
+      ],
+      scalar_types: {
+        Float: {
+          aggregate_functions: {},
+          comparison_operators: {},
+          update_operators: {},
+        },
+        String: {
+          aggregate_functions: {},
+          comparison_operators: {},
+          update_operators: {},
+        },
+      }
+    }
+  });
+});
