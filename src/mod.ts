@@ -4,39 +4,30 @@
  * Typescript entrypoint for running the connector.
  */
 
-import { Command } from 'https://deno.land/x/cmd@v1.2.0/mod.ts'
+// NOTE: Ensure that sdk matches version in connector.ts
+import * as sdk        from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
+import * as commander  from 'npm:commander@11.0.0';
+import * as path       from "https://deno.land/std@0.203.0/path/mod.ts";
 import { programInfo } from './infer.ts'
-import { start, connector } from './connector.ts'
+import { connector   } from './connector.ts'
 
-
-/**
- * The CLI entrypoint into this program.
- * Uses the 'cmd' Deno package.
- */
-
-const program = new Command("typescript-connector");
-
-program
-  .command('infer <entrypoint>')
+const inferCommand = new commander.Command("infer")
+  .argument('<path>', 'Typescript source entrypoint')
   .option('-v, --vendor <path>', 'Vendor location (optional)')
-  .action(function (entrypoint, cmdObj) {
+  .action((entrypoint, cmdObj, _command) => {
     const output = programInfo(entrypoint, cmdObj.vendor, cmdObj.preVendor);
     console.log(JSON.stringify(output));
   });
 
-// This is a passthrough for the TS SDK start method
-// The command name 'serve' has to match the command defined in the SDK since Deno.args is immutable.
-program
-  .command('serve')
-  .option('--configuration <path>')
-  .option('--port <port>')
-  .option('--service-token-secret <secret>')
-  .option('--otlp_endpoint <endpoint>')
-  .option('--service-name <name>')
-  .option('-h, --help')
-  .action((_args, _cmdObj) => {
-    console.error(`Running Connector.start`);
-    start(connector);
-  });
+const program = new commander.Command('typescript-connector');
 
-await program.parseAsync(Deno.args);
+program.addCommand(sdk.get_serve_command(connector));
+program.addCommand(sdk.get_serve_configuration_command(connector));
+program.addCommand(inferCommand);
+
+// The commander library expects node style arguments that have
+// 'node' and the entrypoint as the first two arguments.
+// The node_style_args array makes Deno.args compatible.
+const node_style_args = [Deno.execPath(), path.fromFileUrl(import.meta.url), ...Deno.args];
+
+program.parseAsync(node_style_args).catch(console.error);

@@ -213,11 +213,6 @@ function resolveArguments(
 }
 
 /**
- * This is exported here so that there only needs to be one reference to the SDK version.
- */
-export const start = sdk.start;
-
-/**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
 export const connector: sdk.Connector<Configuration, State> = {
