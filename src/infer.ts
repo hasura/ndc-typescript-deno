@@ -94,16 +94,21 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
       const field_type_validated = validate_type(checker, schema_response, `${name}_field_${k}`, field_type);
-      return [k, { arguments: {}, type: field_type_validated }];
+      return [k, { type: field_type_validated }];
     }));
 
     schema_response.object_types[name] = { fields };
     return { type: 'named', name: name}
   }
 
+  else if (type_name == "void") {
+    console.error(`void functions are not supported`);
+    error('validate_type failed');
+  }
+
   // UNHANDLED: Assume that the type is a scalar
   else {
-    console.error(`Unable to validate type of ${name}: ${type_str}. Assuming that it is a scalar type.`);
+    console.error(`Unable to validate type of ${name}: ${type_str} (${type_name}). Assuming that it is a scalar type.`);
     schema_response.scalar_types[name] = no_ops;
     return { type: 'named', name };
   }
@@ -130,11 +135,31 @@ function pre_vendor(vendorPath: string, filename: string) {
     console.error(`Error: Got code ${code} during deno vendor operation.`)
     console.error(`stdout: ${new TextDecoder().decode(stdout)}`);
     console.error(`stderr: ${new TextDecoder().decode(stderr)}`);
+    error('pre_vendor failed');
+  }
+}
+
+function error(message: string): never {
+  throw new Error(message);
+}
+
+/**
+ * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
+ * @param filename_arg 
+ * @param vendor_arg 
+ * @param perform_vendor 
+ * @returns 
+ */
+export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
+  try {
+    return programInfoException(filename_arg, vendor_arg, perform_vendor);
+  } catch(e) {
+    console.error(e.message);
     Deno.exit(1);
   }
 }
 
-export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
+export function programInfoException(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
   const filename = resolve(filename_arg || './functions/index.ts');
   const vendorPath = resolve(vendor_arg || './vendor');
@@ -215,8 +240,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string, perform_
     });
 
     if(fatal > 0) {
-      console.error(`Fatal errors: ${fatal}`);
-      Deno.exit(1);
+      error(`Fatal errors: ${fatal}`);
     }
   }
 
