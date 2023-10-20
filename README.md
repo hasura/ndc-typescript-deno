@@ -1,12 +1,11 @@
-# ndc-typescript-deno
+# Typescript (Deno) Connector
 
 ![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/9f139964-d0ed-4c92-b01f-9fda255717d4)
 
-The Typescript (Deno) Connector allows a running connector to be inferred from a Typescript file (optionally with dependencies).
+The Typescript (Deno) Connector allows you to write your functions in Typescript and have them deployed as a Hasura DDN 
+connector.
 
 ![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/fb7f4afd-0302-432b-b7ce-3cc7d1f3546b)
-
-Useful Links:
 
 * [Typescript Deno Connector on the NDC Hub](https://hasura.io/connectors/typescript-deno)
 * [Typescript Deno Connector on deno.com](https://deno.land/x/hasura_typescript_connector)
@@ -18,18 +17,15 @@ Useful Links:
 * [Native Data Connector Specification](https://hasura.github.io/ndc-spec/)
 * [Typescript NDC SDK](https://github.com/hasura/ndc-sdk-typescript/)
 
+The connector runs in the following order:
 
-## Overview
+1. Typescript sources are assembled (with `index.ts` acting as your interface definition)
+2. Dependencies are fetched
+3. Inference is performed and made available via the `/schema` endpoint
+4. Functions are served via the connector protocol
 
-The connector runs in the following manner:
-
-* Typescript sources are assembled (with `index.ts` acting as your interface definition)
-* Dependencies are fetched
-* Inference is performed and made available via the `/schema` endpoint
-* Functions are served via the connector protocol
-
-Note: The Deno runtime is used and this connector assumes that dependencies are specified in accordance with [Deno](https://deno.com) conventions.
-
+Note: The Deno runtime is used and this connector assumes that dependencies are specified in accordance with 
+[Deno](https://deno.com) conventions.
 
 ## Before you get Started
 
@@ -219,7 +215,7 @@ View logs from your running connector:
 
 ## Usage
 
-This connector is intended to be used with Hasura v3 projects.
+This connector is intended to be used with Hasura DDN projects.
 
 Find the URL of your connector once deployed:
 
@@ -260,86 +256,12 @@ hasura3 cloud build create --project-id my-project-id --metadata-file metadata.h
 
 ## Service Authentication
 
-If you don't wish to have your connector publically accessible then you must set a service token by specifying the  `SERVICE_TOKEN_SECRET` environment variable when creating your connector:
-
-* `--env SERVICE_TOKEN_SECRET=SUPER_SECRET_TOKEN_XXX123`
-
-Your Hasura project metadata must then set a matching bearer token:
-
-```yaml
-kind: DataConnector
-version: v1
-definition:
-  name: my_connector
-  url:
-    singleUrl: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
-  headers:
-    Authorization:
-      value: "Bearer SUPER_SECRET_TOKEN_XXX123"
-```
-
-While you can specify the token inline as above, it is recommended to use the Hasura secrets functionality for this purpose:
-
-```yaml
-kind: DataConnector
-version: v1
-definition:
-  name: my_connector
-  url:
-    singleUrl: 'https://connector-9XXX7-hyc5v23h6a-ue.a.run.app'
-  headers:
-    Authorization:
-      valueFromSecret: BEARER_TOKEN_SECRET
-```
-
-NOTE: This secret should contain the `Bearer ` prefix.
+Find more information on service authentication [here](./docs/authentication.md).
 
 ## Debugging Issues
 
-Errors may arrise from any of the following:
+For debugging issues with your connector, please see the [debugging guide](./docs/debugging.md).
 
-* Dependency errors in your functions
-* Type errors in your functions
-* Implementation errors in your functions
-* Invalid connector configuration
-* Invalid project metadata
-* Connector Deployment Failure
-* Misconfigured project authentication
-* Misconfigured service authentication
-* Insufficient query permissions
-* Invalid queries
-* Unanticipated bug in connector implementation
+## Contributing
 
-For a botton-up debugging approach:
-
-* First check your functions:
-    * Run `deno check` on your functions to determine if there are any obvious errors
-    * Write a `deno test` harness to ensure that your functions are correctly implemented
-* Then check your connector:
-    * Check that the connctor deployed successfully with `hasura3 connector status my-cool-connector:v1`
-    * Check the build/runtime logs of your connector with `hasura3 connector logs my-cool-connector:v1`
-* Then check your project:
-    * Ensure that your metadata and project build were successful
-* Then check end-to-end integration:
-    * Run test queries and view the connector logs to ensure that your queries are propagating correctly
-
-
-## Development
-
-For contribution to this connector you will want to have the following dependencies:
-
-* [Deno](https://deno.com)
-* (Optionally) [Docker](https://www.docker.com)
-
-In order to perform local development on this codebase:
-
-* Check out the repository: `git clone https://github.com/hasura/ndc-typescript-deno.git`
-* This assumes that you will be testing against function in `./functions`
-* Vendor the dependencies with `cd ./function && deno vendor -f index.ts`
-* Serve your functions with `deno run -A --watch --check ./src/mod.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
-* The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
-* Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
-
-If you are fixing a bug, then please consider adding a test case to `./src/test/data`.
-
-Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage and development of this connector.
+Check out our [contributing guide](./docs/contributing.md) for more details.
