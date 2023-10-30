@@ -207,15 +207,15 @@ hasura3 connector create my-cool-connector:v1 \
 
 Monitor the deployment status by name - This will indicate in-progress, complete, or failed status:
 
-> hasura connector status my-cool-connector:v1
+> hasura3 connector status my-cool-connector:v1
 
 List all your connectors with their deployed URLs:
 
-> hasura connector list
+> hasura3 connector list
  
 View logs from your running connector:
 
-> hasura connector logs my-cool-connector:v1
+> hasura3 connector logs my-cool-connector:v1
 
 ## Usage
 
@@ -223,7 +223,7 @@ This connector is intended to be used with Hasura v3 projects.
 
 Find the URL of your connector once deployed:
 
-> hasura connector list
+> hasura3 connector list
 
 ```
 my-cool-connector:v1 https://connector-9XXX7-hyc5v23h6a-ue.a.run.app active
