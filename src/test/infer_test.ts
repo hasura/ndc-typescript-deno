@@ -84,7 +84,7 @@ Deno.test("Complex Inference", () => {
       collections: [],
       functions: [],
       object_types: {
-        complex_output: {
+        Result: {
           fields: {
             bod: {
               type: {
@@ -134,7 +134,7 @@ Deno.test("Complex Inference", () => {
           },
           name: "complex",
           result_type: {
-            name: "complex_output",
+            name: "Result",
             type: "named",
           },
         },

@@ -1,8 +1,10 @@
 
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.1.0';
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
 import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
+
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
+export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
 
 /**
  * Implementation of the Connector interface for Deno connector.
@@ -215,7 +217,7 @@ function resolveArguments(
 /**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
-export const connector: sdk.Connector<Configuration, State> = {
+export const connector: sdk.Connector<Configuration, Configuration, State> = {
   async try_init_state(
       config: Configuration,
       _metrics: unknown
@@ -260,6 +262,10 @@ export const connector: sdk.Connector<Configuration, State> = {
     return Promise.resolve(result.schema);
   },
 
+  get_raw_configuration_schema(): JSONSchemaObject {
+    return CONFIGURATION_SCHEMA;
+  },
+
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?
   explain(
     _configuration: Configuration,
@@ -276,11 +282,11 @@ export const connector: sdk.Connector<Configuration, State> = {
     request: sdk.QueryRequest
   ): Promise<sdk.QueryResponse> {
     const args = resolveArguments(request.collection, request.arguments);
-    const pruned = await query(state, request.collection, args, request.query.fields);
+    const result = await query(state, request.collection, args, request.query.fields);
     return [{
       aggregates: {},
       rows: [{
-        '__value': pruned
+        '__value': result
       }]
     }];
   },
@@ -310,16 +316,6 @@ export const connector: sdk.Connector<Configuration, State> = {
     return {
       operation_results: results
     }
-  },
-
-  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/30 Deprecated
-  get_read_regions(_: Configuration): string[] {
-    return [];
-  },
-
-  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/30 Deprecated
-  get_write_regions(_: Configuration): string[] {
-    return [];
   },
 
   // If the connector starts successfully it should be healthy
