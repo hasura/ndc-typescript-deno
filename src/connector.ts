@@ -1,6 +1,6 @@
 
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
-import { resolve } from 'https://deno.land/std@0.201.0/path/resolve.ts';
+import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';

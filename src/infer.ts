@@ -9,7 +9,7 @@
  */
 
 import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
-import { resolve, dirname } from "https://deno.land/std@0.201.0/path/posix.ts";
+import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
