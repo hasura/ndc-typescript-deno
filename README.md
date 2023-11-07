@@ -125,6 +125,8 @@ Limitations:
 * Optional object fields are not currently supported
 * Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
 * Functions can be executed via both the `/query` and `/mutation` endpoints
+* Conflicting type names in dependencies will be namespaced with their relative path
+* Generic type parameters will be treated as scalars when referenced
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
