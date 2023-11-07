@@ -97,7 +97,7 @@ function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any,
     } else {
       const split = where.split('/');
       const len = split.length;
-      for(let i = len - 2; i > 0; i--) {
+      for(let i = len - 2; i >= 0; i--) {
         const joined = split.slice(i, len).join('/');
         const name = `${gql_name(joined)}_${type_str}`;
         if(! find_type_name(names,name)) {
