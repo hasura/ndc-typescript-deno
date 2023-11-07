@@ -139,7 +139,6 @@ function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES:
   if(depth > MAX_INFERENCE_RECURSION) {
     error(`Schema inference validation exceeded depth ${MAX_INFERENCE_RECURSION} for type ${type_str}`);
   }
-  console.error(`validate type ${name}: ${type_name} ~ ${type_str}`);
 
   // PROMISE
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/32 There is no recursion that resolves inner promises.
@@ -177,8 +176,6 @@ function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES:
 
     schema_response.object_types[type_str] = Object(); // Break infinite recursion
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
-      console.error(name);
-      // console.error(checker.getTypeAtLocation(v.declarations[0]));
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
       const field_type_validated = validate_type(root_file, checker, OBJECT_NAMES, schema_response, `${name}_field_${k}`, field_type, depth + 1);
       return [k, { type: field_type_validated }];
@@ -193,6 +190,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES:
     error('validate_type failed');
   }
 
+  // TODO: We should resolve generic type parameters somewhere
   // else if (ty.constraint) {
   //   return validate_type(root_file, checker, OBJECT_NAMES, schema_response, name, ty.constraint, depth + 1)
   // }
@@ -200,7 +198,6 @@ function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES:
   // UNHANDLED: Assume that the type is a scalar
   else {
     console.error(`Unable to validate type of ${name}: ${type_str} (${type_name}). Assuming that it is a scalar type.`);
-    console.error(ty.typeArguments);
     schema_response.scalar_types[name] = no_ops;
     return { type: 'named', name };
   }
@@ -395,7 +392,6 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
         const result_type = call.getReturnType();
         const result_type_name = `${fn_name}_output`;
 
-        // console.error((result_type as any).symbol.typeArguments);
         const result_type_validated = validate_type(root_file, checker, OBJECT_NAMES, schema_response, result_type_name, result_type, 0);
         const description = fn_desc ? { description: fn_desc } : {}
 
