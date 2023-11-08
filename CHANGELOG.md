@@ -9,6 +9,20 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.10
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/57
+
+* Types names are now preserved when possible
+* Depends on the latest version of the TS SDK which no longer needs multiregion functions
+* Defines arraybuffer and blob scalars
+* Sets MAX_INFERENCE_RECURSION = 20 to break any potential infinite recursion loops
+* New tests have been created for refactored inference cases
+
+## v0.9
+
+Full-Stack Typescript!
+
 * Ported main server from Rust to pure Deno
 * Support exposing optional function parameters
 
