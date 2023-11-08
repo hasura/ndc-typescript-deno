@@ -9,7 +9,7 @@
  */
 
 import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
-import { resolve } from "https://deno.land/std@0.201.0/path/posix.ts";
+import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
 import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
 import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
@@ -46,6 +46,9 @@ const scalar_mappings: {[key: string]: string} = {
   "bool": "Boolean",
   "boolean": "Boolean",
   "number": "Float",
+  "arraybuffer": "ArrayBuffer", // Treat ArrayBuffer as scalar since it shouldn't recur
+  "blob": "Blob",               // Treat ArrayBuffer as scalar since it shouldn't recur
+  // "void": "Void",            // Void type can be included to permit void types as scalars
 };
 
 // NOTE: This should be able to be made read only
@@ -58,18 +61,91 @@ const no_ops: ScalarType = {
 // TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 Use standard logging from SDK
 const LOG_LEVEL = Deno.env.get("LOG_LEVEL") || "INFO";
 const DEBUG = LOG_LEVEL == 'DEBUG';
+const MAX_INFERENCE_RECURSION = 20; // Better to abort than get into an infinite loop, this could be increased if required.
 
-function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse, name: string, ty: any): Type {
+type TypeNames = Array<{
+  type: ts.Type,
+  name: string
+}>;
+
+function gql_name(n: string): string {
+  // Construct a GraphQL complient name: https://spec.graphql.org/draft/#sec-Type-Name-Introspection
+  // Check if this is actually required.
+  return n.replace(/^[^a-zA-Z]/, '').replace(/[^0-9a-zA-Z]/g,'_');
+}
+
+function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any, names: TypeNames): string {
+  const symbol = t.getSymbol()!;
+  const type_str = checker.typeToString(t);
+
+  if(! symbol) {
+    throw new Error(`Couldn't find symbol for type ${type_str}`);
+  }
+
+  const locations = symbol.declarations.map((d: any) => d.getSourceFile());
+  for(const f of locations) {
+    const where = f.fileName;
+    const short = where.replace(dirname(root_file) + '/','').replace(/\.ts$/, '');
+
+    // If the type is present in the entrypoint, don't qualify the name
+    // If it is under the entrypoint's directory qualify with the subpath
+    // Otherwise, use the minimum ancestor of the type's location to ensure non-conflict
+    if(root_file == where) {
+      return type_str;
+    } else if (short.length < where.length) {
+      return `${gql_name(short)}_${type_str}`;
+    } else {
+      const split = where.split('/');
+      const len = split.length;
+      for(let i = len - 2; i >= 0; i--) {
+        const joined = split.slice(i, len).join('/');
+        const name = `${gql_name(joined)}_${type_str}`;
+        if(! find_type_name(names,name)) {
+          return name;
+        }
+      }
+      throw new Error(`Couldn't find any declarations for type ${type_str}`);
+    }
+  }
+
+  throw new Error(`Couldn't find any declarations for type ${type_str}`);
+}
+
+function find_type_name(names: TypeNames, name: string): string | undefined {
+  for(const p of names) {
+    if(name == p.name) {
+      return p.name;
+    }
+  }
+  return;
+};
+
+function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, t: ts.Type): string {
+  for(const p of names) {
+    if(t == p.type) {
+      return p.name;
+    }
+  }
+  const new_name = qualified_type_name(root_file, checker, t, names);
+  names.push({type: t, name: new_name});
+  return new_name;
+};
+
+function validate_type(root_file: string, checker: ts.TypeChecker, object_names: TypeNames, schema_response: SchemaResponse, name: string, ty: any, depth: number): Type {
   const type_str = checker.typeToString(ty);
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
   const type_name_lower: string = type_name.toLowerCase();
+
+  if(depth > MAX_INFERENCE_RECURSION) {
+    error(`Schema inference validation exceeded depth ${MAX_INFERENCE_RECURSION} for type ${type_str}`);
+  }
 
   // PROMISE
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/32 There is no recursion that resolves inner promises.
   //       Nested promises should be resolved in the function definition.
   if (type_name == "Promise") {
     const inner_type = ty.resolvedTypeArguments[0];
-    const inner_type_result = validate_type(checker, schema_response, name, inner_type);
+    const inner_type_result = validate_type(root_file, checker, object_names, schema_response, name, inner_type, depth + 1);
     return inner_type_result;
   }
 
@@ -77,7 +153,7 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
   else if (type_name == "Array") {
     const inner_type = ty.resolvedTypeArguments[0];
-    const inner_type_result = validate_type(checker, schema_response, name, inner_type);
+    const inner_type_result = validate_type(root_file, checker, object_names, schema_response, `Array_of_${name}`, inner_type, depth + 1);
     return { type: 'array', element_type: inner_type_result };
   }
 
@@ -91,20 +167,34 @@ function validate_type(checker: ts.TypeChecker, schema_response: SchemaResponse,
   // OBJECT
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
   else if (is_struct(ty)) {
+    const type_str_qualified = lookup_type_name(root_file, checker, object_names, ty);
+    
+    // Shortcut recursion if the type has already been named
+    if(schema_response.object_types[type_str_qualified]) {
+      return { type: 'named', name: type_str_qualified };
+    }
+
+    schema_response.object_types[type_str] = Object(); // Break infinite recursion
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
-      const field_type_validated = validate_type(checker, schema_response, `${name}_field_${k}`, field_type);
+      const field_type_validated = validate_type(root_file, checker, object_names, schema_response, `${name}_field_${k}`, field_type, depth + 1);
       return [k, { type: field_type_validated }];
     }));
 
-    schema_response.object_types[name] = { fields };
-    return { type: 'named', name: name}
+    schema_response.object_types[type_str_qualified] = { fields };
+    return { type: 'named', name: type_str_qualified}
   }
 
   else if (type_name == "void") {
-    console.error(`void functions are not supported`);
+    console.error(`void functions are not supported: ${name}`);
     error('validate_type failed');
   }
+
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/58 We should resolve generic type parameters somewhere
+  //
+  // else if (ty.constraint) {
+  //   return validate_type(root_file, checker, object_names, schema_response, name, ty.constraint, depth + 1)
+  // }
 
   // UNHANDLED: Assume that the type is a scalar
   else {
@@ -254,6 +344,8 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
     procedures: [],
   };
 
+  const object_names = [] as TypeNames;
+
   const positions: FunctionPositions = {};
 
   function isExported(node: FunctionDeclaration): boolean {
@@ -280,6 +372,8 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
       continue;
     }
 
+    const root_file = resolve(filename);
+
     ts.forEachChild(src, (node) => {
       if (ts.isFunctionDeclaration(node)) {
         const fn_sym = checker.getSymbolAtLocation(node.name!)!;
@@ -298,7 +392,8 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
         const call = fn_type.getCallSignatures()[0]!;
         const result_type = call.getReturnType();
         const result_type_name = `${fn_name}_output`;
-        const result_type_validated = validate_type(checker, schema_response, result_type_name, result_type);
+
+        const result_type_validated = validate_type(root_file, checker, object_names, schema_response, result_type_name, result_type, 0);
         const description = fn_desc ? { description: fn_desc } : {}
 
         const fn: FunctionInfo = {
@@ -316,7 +411,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
           // TODO: https://github.com/hasura/ndc-typescript-deno/issues/34 Use the user's given type name if one exists.
           const type_name = `${fn_name}_arguments_${param_name}`;
-          const param_type_validated = validate_type(checker, schema_response, type_name, param_type); // E.g. `bio_arguments_username`
+          const param_type_validated = validate_type(root_file, checker, object_names, schema_response, type_name, param_type, 0); // E.g. `bio_arguments_username`
           const description = param_desc ? { description: param_desc } : {}
 
           positions[fn.name].push(param_name);

@@ -118,13 +118,15 @@ and others as procedures, which will become queries and mutations respectively.
 
 Limitations:
 
-* The `deno vendor` step must be run by hand for local development
+* ~~The `deno vendor` step must be run by hand for local development~~ (vendoring is now automatic by default)
 * Functions can be sync, or async, but `Promise`'s can't be nested
 * All numbers are exported as `Float`s
 * Unrecognised types will become opaque scalars, for example: union types.
 * Optional object fields are not currently supported
 * Complex input types are supported by the connector, but are not supported in "commands" in Hasura3 projects
 * Functions can be executed via both the `/query` and `/mutation` endpoints
+* Conflicting type names in dependencies will be namespaced with their relative path
+* Generic type parameters will be treated as scalars when referenced
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
