@@ -63,7 +63,7 @@ const LOG_LEVEL = Deno.env.get("LOG_LEVEL") || "INFO";
 const DEBUG = LOG_LEVEL == 'DEBUG';
 const MAX_INFERENCE_RECURSION = 20; // Better to abort than get into an infinite loop, this could be increased if required.
 
-type TYPE_NAMES = Array<{
+type TypeNames = Array<{
   type: ts.Type,
   name: string
 }>;
@@ -74,7 +74,7 @@ function gql_name(n: string): string {
   return n.replace(/^[^a-zA-Z]/, '').replace(/[^0-9a-zA-Z]/g,'_');
 }
 
-function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any, names: TYPE_NAMES): string {
+function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any, names: TypeNames): string {
   const symbol = t.getSymbol()!;
   const type_str = checker.typeToString(t);
 
@@ -111,7 +111,7 @@ function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any,
   throw new Error(`Couldn't find any declarations for type ${type_str}`);
 }
 
-function find_type_name(names: TYPE_NAMES, name: string): string | undefined {
+function find_type_name(names: TypeNames, name: string): string | undefined {
   for(const p of names) {
     if(name == p.name) {
       return p.name;
@@ -120,7 +120,7 @@ function find_type_name(names: TYPE_NAMES, name: string): string | undefined {
   return;
 };
 
-function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TYPE_NAMES, t: ts.Type): string {
+function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, t: ts.Type): string {
   for(const p of names) {
     if(t == p.type) {
       return p.name;
@@ -131,7 +131,7 @@ function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TYP
   return new_name;
 };
 
-function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES: TYPE_NAMES, schema_response: SchemaResponse, name: string, ty: any, depth: number): Type {
+function validate_type(root_file: string, checker: ts.TypeChecker, OBJECT_NAMES: TypeNames, schema_response: SchemaResponse, name: string, ty: any, depth: number): Type {
   const type_str = checker.typeToString(ty);
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
   const type_name_lower: string = type_name.toLowerCase();
@@ -344,7 +344,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
     procedures: [],
   };
 
-  const OBJECT_NAMES = [] as TYPE_NAMES;
+  const OBJECT_NAMES = [] as TypeNames;
 
   const positions: FunctionPositions = {};
 

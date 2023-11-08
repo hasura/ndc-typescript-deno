@@ -118,7 +118,7 @@ and others as procedures, which will become queries and mutations respectively.
 
 Limitations:
 
-* The `deno vendor` step must be run by hand for local development
+* ~~The `deno vendor` step must be run by hand for local development~~ (vendoring is now automatic by default)
 * Functions can be sync, or async, but `Promise`'s can't be nested
 * All numbers are exported as `Float`s
 * Unrecognised types will become opaque scalars, for example: union types.
