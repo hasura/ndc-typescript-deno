@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.11
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/59
+
+* Bugfix: Issue with unused argument being parsed as a file - Prevented invoking on deno.land
+
 ## v0.10
 
 PR: https://github.com/hasura/ndc-typescript-deno/pull/57
