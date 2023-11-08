@@ -190,8 +190,8 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
     error('validate_type failed');
   }
 
-  // TODO: We should resolve generic type parameters somewhere
-  // See: https://github.com/hasura/ndc-typescript-deno/issues/58
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/58 We should resolve generic type parameters somewhere
+  //
   // else if (ty.constraint) {
   //   return validate_type(root_file, checker, object_names, schema_response, name, ty.constraint, depth + 1)
   // }
