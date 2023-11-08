@@ -27,6 +27,7 @@ program.addCommand(inferCommand);
 // The commander library expects node style arguments that have
 // 'node' and the entrypoint as the first two arguments.
 // The node_style_args array makes Deno.args compatible.
-const node_style_args = [Deno.execPath(), path.fromFileUrl(import.meta.url), ...Deno.args];
+// The import.meta.url is used instead of a file, since it may be invoked from deno.land
+const node_style_args = [Deno.execPath(), import.meta.url, ...Deno.args];
 
 program.parseAsync(node_style_args).catch(console.error);
