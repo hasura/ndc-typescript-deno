@@ -120,14 +120,18 @@ function find_type_name(names: TypeNames, name: string): string | undefined {
   return;
 };
 
-function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, t: ts.Type): string {
+function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, name: string, ty: ts.Type): string {
+  const type_str = checker.typeToString(ty);
+  if(/{/.test(type_str)) {
+    return name;
+  }
   for(const p of names) {
-    if(t == p.type) {
+    if(ty == p.type) {
       return p.name;
     }
   }
-  const new_name = qualified_type_name(root_file, checker, t, names);
-  names.push({type: t, name: new_name});
+  const new_name = qualified_type_name(root_file, checker, ty, names);
+  names.push({type: ty, name: new_name});
   return new_name;
 };
 
@@ -167,14 +171,14 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   // OBJECT
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
   else if (is_struct(ty)) {
-    const type_str_qualified = lookup_type_name(root_file, checker, object_names, ty);
+    const type_str_qualified = lookup_type_name(root_file, checker, object_names, name, ty);
     
     // Shortcut recursion if the type has already been named
     if(schema_response.object_types[type_str_qualified]) {
       return { type: 'named', name: type_str_qualified };
     }
 
-    schema_response.object_types[type_str] = Object(); // Break infinite recursion
+    schema_response.object_types[type_str_qualified] = Object(); // Break infinite recursion
     const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
       const field_type = checker.getTypeAtLocation(v.declarations[0].type);
       const field_type_validated = validate_type(root_file, checker, object_names, schema_response, `${name}_field_${k}`, field_type, depth + 1);
