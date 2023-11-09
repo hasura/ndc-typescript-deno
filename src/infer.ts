@@ -238,6 +238,13 @@ function error(message: string): never {
   throw new Error(message);
 }
 
+/**
+ * Logs simple listing of functions/procedures on stderr.
+ * 
+ * @param prompt 
+ * @param positions 
+ * @param info 
+ */
 function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.FunctionInfo>) {
   if(info.length > 0) {
     console.error(``);
