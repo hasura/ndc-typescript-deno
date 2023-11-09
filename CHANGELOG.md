@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.12
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/60
+
+* Use positional names for inline types
+
 ## v0.11
 
 PR: https://github.com/hasura/ndc-typescript-deno/pull/59
