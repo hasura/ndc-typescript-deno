@@ -122,6 +122,7 @@ function find_type_name(names: TypeNames, name: string): string | undefined {
 
 function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, name: string, ty: ts.Type): string {
   const type_str = checker.typeToString(ty);
+  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/61 This regex check is janky.
   if(/{/.test(type_str)) {
     return name;
   }
