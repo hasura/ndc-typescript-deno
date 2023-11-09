@@ -10,15 +10,15 @@
 
 import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
 import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
-import {existsSync} from "https://deno.land/std@0.201.0/fs/mod.ts";
-import { FunctionInfo, ScalarType, SchemaResponse, Type } from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { existsSync } from "https://deno.land/std@0.201.0/fs/mod.ts";
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
 
 export type Struct<X> = Record<string, X>;
 
 export type FunctionPositions = Struct<Array<string>>
 
 export type ProgramInfo = {
-  schema: SchemaResponse,
+  schema: sdk.SchemaResponse,
   positions: FunctionPositions
 }
 
@@ -52,7 +52,7 @@ const scalar_mappings: {[key: string]: string} = {
 };
 
 // NOTE: This should be able to be made read only
-const no_ops: ScalarType = {
+const no_ops: sdk.ScalarType = {
   aggregate_functions: {},
   comparison_operators: {},
   update_operators: {},
@@ -136,7 +136,7 @@ function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: Typ
   return new_name;
 };
 
-function validate_type(root_file: string, checker: ts.TypeChecker, object_names: TypeNames, schema_response: SchemaResponse, name: string, ty: any, depth: number): Type {
+function validate_type(root_file: string, checker: ts.TypeChecker, object_names: TypeNames, schema_response: sdk.SchemaResponse, name: string, ty: any, depth: number): sdk.Type {
   const type_str = checker.typeToString(ty);
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
   const type_name_lower: string = type_name.toLowerCase();
@@ -239,6 +239,25 @@ function error(message: string): never {
 }
 
 /**
+ * Logs simple listing of functions/procedures on stderr.
+ * 
+ * @param prompt 
+ * @param positions 
+ * @param info 
+ */
+function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.FunctionInfo>) {
+  if(info.length > 0) {
+    console.error(``);
+    console.error(`${prompt}:`)
+    for(const f of info) {
+      const args = (positions[f.name] || []).join(', ');
+      console.log(`* ${f.name}(${args})`);
+    }
+    console.error(``);
+  }
+}
+
+/**
  * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
  * @param filename_arg 
  * @param vendor_arg 
@@ -247,7 +266,10 @@ function error(message: string): never {
  */
 export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
   try {
-    return programInfoException(filename_arg, vendor_arg, perform_vendor);
+    const info = programInfoException(filename_arg, vendor_arg, perform_vendor);
+    listing('Functions', info.positions, info.schema.functions)
+    listing('Procedures', info.positions, info.schema.procedures)
+    return info;
   } catch(e) {
     console.error(e.message);
     Deno.exit(1);
@@ -341,7 +363,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
 
   const checker = program.getTypeChecker();
 
-  const schema_response: SchemaResponse = {
+  const schema_response: sdk.SchemaResponse = {
     scalar_types: {},
     object_types: {},
     collections: [],
@@ -401,7 +423,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
         const result_type_validated = validate_type(root_file, checker, object_names, schema_response, result_type_name, result_type, 0);
         const description = fn_desc ? { description: fn_desc } : {}
 
-        const fn: FunctionInfo = {
+        const fn: sdk.FunctionInfo = {
           name: node.name!.text,
           ...description,
           arguments: {},
@@ -424,7 +446,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
           // TODO: https://github.com/hasura/ndc-typescript-deno/issues/36
           //       Creating the structure for optional types should be done by 'validate_type'.
           //       Perhaps give an 'optional' boolean argument to 'validate_type' constructed in this way for params.
-          function optionalParameterType(): Type {
+          function optionalParameterType(): sdk.Type {
             if(param) {
               for(const declaration of param.getDeclarations() || []) {
                 if(isParameterDeclaration(declaration)) {
