@@ -127,6 +127,7 @@ Limitations:
 * Functions can be executed via both the `/query` and `/mutation` endpoints
 * Conflicting type names in dependencies will be namespaced with their relative path
 * Generic type parameters will be treated as scalars when referenced
+* Deno's `npm:` specifier doesn't currently work with the vendor command
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
