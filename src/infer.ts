@@ -22,11 +22,6 @@ export type ProgramInfo = {
   positions: FunctionPositions
 }
 
-// TODO: https://github.com/hasura/ndc-typescript-deno/issues/31 Specialise the any to ty.Type or something similar
-function is_struct(ty: any): boolean {
-  return (ty?.members?.size || 0) > 0;
-}
-
 function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) => [string, O])): {[key: string]: O} {
   const keys: Array<string> = Object.keys(obj);
   const result: {[key: string]: O} = {};
