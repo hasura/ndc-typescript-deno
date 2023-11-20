@@ -326,8 +326,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string, perform_
     listing('Procedures', info.positions, info.schema.procedures)
     return info;
   } catch(e) {
-    console.error(e.stack);
     console.error(e.message);
+    // console.error(e.stack);
     Deno.exit(1);
   }
 }
