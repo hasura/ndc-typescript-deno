@@ -242,10 +242,9 @@ function which_flags(flags_enum: Record<string, string | number>, value: number)
 }
 
 type ObjectTypeInfo = {
-  // The name of the type (not including generic type parameters)
+  // The qualified name of the type
   type_name: string,
-  // Any type parameter types used with this type, useful for forming
-  // a closed generic name (eg IThing<string,number> could become IThing_string_number)
+  // Parameter types used with this type in positional order
   generic_parameter_types: readonly ts.Type[]
   // The member properties of the object type. The types are
   // concrete types after type parameter resolution
