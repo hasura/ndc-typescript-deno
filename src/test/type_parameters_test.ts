@@ -4,7 +4,7 @@ import * as path    from "https://deno.land/std@0.203.0/path/mod.ts";
 import * as infer   from '../infer.ts';
 
 Deno.test({ name: "Type Parameters",
- ignore: true,
+ ignore: false,
  fn() {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/type_parameters.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
@@ -31,7 +31,7 @@ Deno.test({ name: "Type Parameters",
             },
             y: {
               type: {
-                name: "bar_output_field_y",
+                name: "Foo",
                 type: "named",
               },
             },
@@ -47,7 +47,7 @@ Deno.test({ name: "Type Parameters",
             },
             b: {
               type: {
-                name: "Float",
+                name: "String",
                 type: "named",
               },
             },

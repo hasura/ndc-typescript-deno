@@ -22,11 +22,6 @@ export type ProgramInfo = {
   positions: FunctionPositions
 }
 
-// TODO: https://github.com/hasura/ndc-typescript-deno/issues/31 Specialise the any to ty.Type or something similar
-function is_struct(ty: any): boolean {
-  return (ty?.members?.size || 0) > 0;
-}
-
 function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) => [string, O])): {[key: string]: O} {
   const keys: Array<string> = Object.keys(obj);
   const result: {[key: string]: O} = {};
@@ -74,12 +69,15 @@ function gql_name(n: string): string {
   return n.replace(/^[^a-zA-Z]/, '').replace(/[^0-9a-zA-Z]/g,'_');
 }
 
-function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any, names: TypeNames): string {
-  const symbol = t.getSymbol()!;
-  const type_str = checker.typeToString(t);
+function qualify_type_name(root_file: string, t: any, name: string): string {
+  let symbol = t.getSymbol();
 
   if(! symbol) {
-    throw new Error(`Couldn't find symbol for type ${type_str}`);
+    try {
+      symbol = t.types[0].getSymbol();
+    } catch(e) {
+      throw new Error(`Couldn't find symbol for type ${name}`);
+    }
   }
 
   const locations = symbol.declarations.map((d: any) => d.getSourceFile());
@@ -91,50 +89,16 @@ function qualified_type_name(root_file: string, checker: ts.TypeChecker, t: any,
     // If it is under the entrypoint's directory qualify with the subpath
     // Otherwise, use the minimum ancestor of the type's location to ensure non-conflict
     if(root_file == where) {
-      return type_str;
+      return name;
     } else if (short.length < where.length) {
-      return `${gql_name(short)}_${type_str}`;
+      return `${gql_name(short)}_${name}`;
     } else {
-      const split = where.split('/');
-      const len = split.length;
-      for(let i = len - 2; i >= 0; i--) {
-        const joined = split.slice(i, len).join('/');
-        const name = `${gql_name(joined)}_${type_str}`;
-        if(! find_type_name(names,name)) {
-          return name;
-        }
-      }
-      throw new Error(`Couldn't find any declarations for type ${type_str}`);
+      throw new Error(`Unsupported location for type ${name} in ${where}`);
     }
   }
 
-  throw new Error(`Couldn't find any declarations for type ${type_str}`);
+  throw new Error(`Couldn't find any declarations for type ${name}`);
 }
-
-function find_type_name(names: TypeNames, name: string): string | undefined {
-  for(const p of names) {
-    if(name == p.name) {
-      return p.name;
-    }
-  }
-  return;
-};
-
-function lookup_type_name(root_file: string, checker: ts.TypeChecker, names: TypeNames, name: string, ty: ts.Type): string {
-  const type_str = checker.typeToString(ty);
-  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/61 This regex check is janky.
-  if(/{/.test(type_str)) {
-    return name;
-  }
-  for(const p of names) {
-    if(ty == p.type) {
-      return p.name;
-    }
-  }
-  const new_name = qualified_type_name(root_file, checker, ty, names);
-  names.push({type: ty, name: new_name});
-  return new_name;
-};
 
 function validate_type(root_file: string, checker: ts.TypeChecker, object_names: TypeNames, schema_response: sdk.SchemaResponse, name: string, ty: any, depth: number): sdk.Type {
   const type_str = checker.typeToString(ty);
@@ -148,6 +112,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   // PROMISE
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/32 There is no recursion that resolves inner promises.
   //       Nested promises should be resolved in the function definition.
+  // TODO: promises should not be allowed in parameters
   if (type_name == "Promise") {
     const inner_type = ty.resolvedTypeArguments[0];
     const inner_type_result = validate_type(root_file, checker, object_names, schema_response, name, inner_type, depth + 1);
@@ -155,15 +120,14 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   }
 
   // ARRAY
-  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
-  else if (type_name == "Array") {
+  if (checker.isArrayType(ty)) {
     const inner_type = ty.resolvedTypeArguments[0];
     const inner_type_result = validate_type(root_file, checker, object_names, schema_response, `Array_of_${name}`, inner_type, depth + 1);
     return { type: 'array', element_type: inner_type_result };
   }
 
-  // SCALAR
-  else if (scalar_mappings[type_name_lower]) {
+  // Named SCALAR
+  if (scalar_mappings[type_name_lower]) {
     const type_name_gql = scalar_mappings[type_name_lower];
     schema_response.scalar_types[type_name_gql] = no_ops;
     return { type: 'named', name: type_name_gql };
@@ -171,8 +135,9 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
 
   // OBJECT
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
-  else if (is_struct(ty)) {
-    const type_str_qualified = lookup_type_name(root_file, checker, object_names, name, ty);
+  const info = get_object_type_info(root_file, checker, ty, name);
+  if (info) {
+    const type_str_qualified = info.type_name; // lookup_type_name(root_file, checker, info, object_names, name, ty);
     
     // Shortcut recursion if the type has already been named
     if(schema_response.object_types[type_str_qualified]) {
@@ -180,8 +145,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
     }
 
     schema_response.object_types[type_str_qualified] = Object(); // Break infinite recursion
-    const fields = Object.fromEntries(Array.from(ty.members, ([k, v]) => {
-      const field_type = checker.getTypeAtLocation(v.declarations[0].type);
+    const fields = Object.fromEntries(Array.from(info.members, ([k, field_type]) => {
       const field_type_validated = validate_type(root_file, checker, object_names, schema_response, `${name}_field_${k}`, field_type, depth + 1);
       return [k, { type: field_type_validated }];
     }));
@@ -190,7 +154,13 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
     return { type: 'named', name: type_str_qualified}
   }
 
-  else if (type_name == "void") {
+  // TODO: We could potentially support classes, but only as return types, not as function arguments
+  if ((ty.objectFlags & ts.ObjectFlags.Class) !== 0) {
+    console.error(`class types are not supported: ${name}`);
+    error('validate_type failed');
+  }
+
+  if (ty === checker.getVoidType()) {
     console.error(`void functions are not supported: ${name}`);
     error('validate_type failed');
   }
@@ -202,11 +172,9 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   // }
 
   // UNHANDLED: Assume that the type is a scalar
-  else {
-    console.error(`Unable to validate type of ${name}: ${type_str} (${type_name}). Assuming that it is a scalar type.`);
-    schema_response.scalar_types[name] = no_ops;
-    return { type: 'named', name };
-  }
+  console.error(`Unable to validate type of ${name}: ${type_str} (${type_name}). Assuming that it is a scalar type.`);
+  schema_response.scalar_types[name] = no_ops;
+  return { type: 'named', name };
 }
 
 /**
@@ -258,6 +226,88 @@ function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.F
 }
 
 /**
+ * Returns the flags associated with a type.
+ */
+function which_flags(flags_enum: Record<string, string | number>, value: number): string[] {
+  return Object
+    .keys(flags_enum)
+    .flatMap(k => {
+      const k_int = parseInt(k);
+      return isNaN(k_int)
+        ? []
+        : (value & k_int) !== 0
+          ? [flags_enum[k] as string]
+          : []
+    });
+}
+
+type ObjectTypeInfo = {
+  // The name of the type (not including generic type parameters)
+  type_name: string,
+  // Any type parameter types used with this type, useful for forming
+  // a closed generic name (eg IThing<string,number> could become IThing_string_number)
+  generic_parameter_types: readonly ts.Type[]
+  // The member properties of the object type. The types are
+  // concrete types after type parameter resolution
+  members: Map<string, ts.Type>
+}
+
+function get_members(checker: ts.TypeChecker, ty: ts.Type, member_names: string[]) {
+  return new Map(
+    member_names.map(name => [name, checker.getTypeOfSymbol(checker.getPropertyOfType(ty, name)!)])
+  )
+}
+
+function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: any, contextual_name: string): ObjectTypeInfo | null {
+  // Anonymous object type - this covers:
+  // - {a: number, b: string}
+  // - type Bar = { test: string }
+  // - type GenericBar<T> = { data: T }
+  if ((ty.objectFlags & ts.ObjectFlags.Anonymous) !== 0) {
+    const members = 
+      ty.aliasTypeArguments !== undefined
+        ? ty.target.members
+        : ty.members;
+    return {
+      type_name: qualify_type_name(root_file, ty, ty.aliasSymbol ? checker.typeToString(ty) : contextual_name),
+      generic_parameter_types: ty.aliasTypeArguments ?? [],
+      members: get_members(checker, ty, Array.from(members.keys())),
+    }
+  }
+  // Interface type - this covers:
+  // interface IThing { test: string }
+  else if ((ty.objectFlags & ts.ObjectFlags.Interface) !== 0) {
+    return {
+      type_name: ty.symbol.escapedName,
+      generic_parameter_types: [],
+      members: get_members(checker, ty, Array.from(ty.members.keys())),
+    }
+  } 
+  // Generic interface type - this covers:
+  // interface IGenericThing<T> { data: T }
+  else if ((ty.objectFlags & ts.ObjectFlags.Reference) !== 0 && (ty.target.objectFlags & ts.ObjectFlags.Interface) !== 0 && checker.isArrayType(ty) == false && ty.symbol.escapedName !== "Promise") {
+    return {
+      type_name: ty.symbol.escapedName,
+      generic_parameter_types: ty.typeArguments,
+      members: get_members(checker, ty, Array.from(ty.target.members.keys())),
+    }
+  }
+  // Intersection type - this covers:
+  // - { num: number } & Bar
+  // - type IntersectionObject = { wow: string } & Bar
+  // - type GenericIntersectionObject<T> = { data: T } & Bar
+  else if ((ty.flags & ts.TypeFlags.Intersection) !== 0) {
+    return {
+      type_name: qualify_type_name(root_file, ty, ty.aliasSymbol ? checker.typeToString(ty) : contextual_name),
+      generic_parameter_types: ty.aliasTypeArguments ?? [],
+      members: new Map(ty.resolvedProperties.map((symbol: ts.Symbol) => [symbol.name, checker.getTypeOfSymbol(symbol)])),
+    }
+  }
+
+  return null;
+}
+
+/**
  * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
  * @param filename_arg 
  * @param vendor_arg 
@@ -272,6 +322,7 @@ export function programInfo(filename_arg?: string, vendor_arg?: string, perform_
     return info;
   } catch(e) {
     console.error(e.message);
+    // console.error(e.stack);
     Deno.exit(1);
   }
 }
