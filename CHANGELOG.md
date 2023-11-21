@@ -9,6 +9,17 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.14
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/70
+
+* Fixes: #61 - Use a better check for inline object type detection
+* Fixes: #33 - Detect Object and Array scenarios using TS library functions
+* Fixes: #45 - Infinite loop for certain function definitions
+* Fixes: #51 - Inferring result for non-annotated functions.
+* Fixes: #31 - Find a better implementation of is_struct that is type aware
+* Fixes: #58 - Generic type parameters are not handled correctly
+
 ## v0.13
 
 PR: https://github.com/hasura/ndc-typescript-deno/pull/62
