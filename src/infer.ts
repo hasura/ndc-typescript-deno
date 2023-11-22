@@ -219,7 +219,7 @@ function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.F
     console.error(`${prompt}:`)
     for(const f of info) {
       const args = (positions[f.name] || []).join(', ');
-      console.log(`* ${f.name}(${args})`);
+      console.error(`* ${f.name}(${args})`);
     }
     console.error(``);
   }

@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.14.1
+
+Hotfix for infer bug:
+
+* Fixes: Infer command logging informational output on stdout
+
 ## v0.14
 
 PR: https://github.com/hasura/ndc-typescript-deno/pull/70
