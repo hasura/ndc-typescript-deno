@@ -41,7 +41,7 @@ export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
       type: 'string'
     },
     preVendor: {
-      description: 'Perform vendoring prior to inference in a sub-process (default: false)',
+      description: 'Perform vendoring prior to inference in a sub-process (default: true)',
       type: 'boolean'
     },
     schemaMode:  {
@@ -250,7 +250,11 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 Make this add in the defaults
   update_configuration(configuration: Configuration): Promise<Configuration> {
-    return Promise.resolve(configuration);
+    const defaults = {
+      preVendor: true,
+    }
+    const response = { ...defaults, ...configuration }
+    return Promise.resolve(response);
   },
 
   validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
