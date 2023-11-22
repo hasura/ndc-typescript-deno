@@ -11,7 +11,9 @@ Changes to be included in the next upcoming releaase.
 
 ## v0.14.1
 
-Hotfix for infer bug:
+Diff: b1bdc55..17e85d5
+
+Hotfix for infer bug.
 
 * Fixes: Infer command logging informational output on stdout
 
