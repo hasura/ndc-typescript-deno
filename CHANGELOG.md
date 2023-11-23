@@ -9,6 +9,14 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.16
+
+Prevendoring by default.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/74
+
+* Using defaults of `{"preVendor": true}` to minimise setup required for development
+
 ## v0.15
 
 Updating TypeScript target version from ES2017 to ES2022.
