@@ -127,7 +127,7 @@ Limitations:
 * Functions can be executed via both the `/query` and `/mutation` endpoints
 * Conflicting type names in dependencies will be namespaced with their relative path
 * Generic type parameters will be treated as scalars when referenced
-* Importing multiple versions of the same package using Deno `npm:` package specifiers
+* Importing multiple versions of the same package using Deno `npm:` package specifiers does not work properly with type inference (only a single version of the package is imported)
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
