@@ -14,7 +14,7 @@ if [ -d vendor ]
 then
   echo "found existing vendor results"
 else
-  deno vendor -f index.ts
+  deno vendor --node-modules-dir -f index.ts
   deno vendor -f /app/mod.ts
 fi
 

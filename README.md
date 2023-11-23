@@ -127,7 +127,7 @@ Limitations:
 * Functions can be executed via both the `/query` and `/mutation` endpoints
 * Conflicting type names in dependencies will be namespaced with their relative path
 * Generic type parameters will be treated as scalars when referenced
-* Deno's `npm:` specifier doesn't currently work with the vendor command
+* Importing multiple versions of the same package using Deno `npm:` package specifiers
 
 Please [file an issue](https://github.com/hasura/ndc-typescript-deno/issues/new) for any problems you encounter during usage of this connector.
 
@@ -304,7 +304,7 @@ NOTE: This secret should contain the `Bearer ` prefix.
 
 ## Debugging Issues
 
-Errors may arrise from any of the following:
+Errors may arise from any of the following:
 
 * Dependency errors in your functions
 * Type errors in your functions
@@ -318,13 +318,13 @@ Errors may arrise from any of the following:
 * Invalid queries
 * Unanticipated bug in connector implementation
 
-For a botton-up debugging approach:
+For a bottom-up debugging approach:
 
 * First check your functions:
     * Run `deno check` on your functions to determine if there are any obvious errors
     * Write a `deno test` harness to ensure that your functions are correctly implemented
 * Then check your connector:
-    * Check that the connctor deployed successfully with `hasura3 connector status my-cool-connector:v1`
+    * Check that the connector deployed successfully with `hasura3 connector status my-cool-connector:v1`
     * Check the build/runtime logs of your connector with `hasura3 connector logs my-cool-connector:v1`
 * Then check your project:
     * Ensure that your metadata and project build were successful
@@ -343,7 +343,7 @@ In order to perform local development on this codebase:
 
 * Check out the repository: `git clone https://github.com/hasura/ndc-typescript-deno.git`
 * This assumes that you will be testing against function in `./functions`
-* Vendor the dependencies with `cd ./function && deno vendor -f index.ts`
+* Vendor the dependencies with `cd ./function && deno vendor --node-modules-dir -f index.ts`
 * Serve your functions with `deno run -A --watch --check ./src/mod.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
 * The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
 * Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
