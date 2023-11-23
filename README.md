@@ -343,7 +343,6 @@ In order to perform local development on this codebase:
 
 * Check out the repository: `git clone https://github.com/hasura/ndc-typescript-deno.git`
 * This assumes that you will be testing against function in `./functions`
-* Vendor the dependencies with `cd ./function && deno vendor --node-modules-dir -f index.ts`
 * Serve your functions with `deno run -A --watch --check ./src/mod.ts serve --configuration <(echo '{"functions": "./functions/index.ts", "vendor": "./functions/vendor", "schemaMode": "INFER"}')`
 * The connector should now be running on localhost:8100 and respond to any changes to the your functions and the connector source
 * Use the `hasura3` tunnel commands to reference this connector from a Hasura Cloud project
