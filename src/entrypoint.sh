@@ -37,7 +37,7 @@ then
 fi
 
 # The config is always the same for `connector create`
-echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
+echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
   > /config.json
 
 deno run \
