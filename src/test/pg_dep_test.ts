@@ -9,7 +9,7 @@ import * as infer   from '../infer.ts';
 Deno.test("Inferred Dependency Based Result Type", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/pg_dep.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
-  const program_results = infer.programInfo(program_path, vendor_path, false);
+  const program_results = infer.programInfo(program_path, vendor_path, true);
 
   test.assertEquals(program_results, {
     positions: {
