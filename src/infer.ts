@@ -8,7 +8,7 @@
  * Dependencies are required to be vendored before invocation. 
  */
 
-import ts, { FunctionDeclaration } from "npm:typescript@5.1.6";
+import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6";
 import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { existsSync } from "https://deno.land/std@0.201.0/fs/mod.ts";
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
@@ -187,7 +187,7 @@ function pre_vendor(vendorPath: string, filename: string) {
   // Exampe taken from:
   // https://docs.deno.com/runtime/tutorials/subprocess
   const deno_exec_path = Deno.execPath();
-  const vendor_args = [ "vendor", "--output", vendorPath, "--force", filename ];
+  const vendor_args = [ "vendor", "--node-modules-dir", "--output", vendorPath, "--force", filename ];
 
   console.error(`Vendoring dependencies: ${[deno_exec_path, ...vendor_args].join(" ")}`);
 
@@ -370,9 +370,9 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
   }
   `);
 
-  const program = ts.createProgram([filename], {
+  const compilerOptions: ts.CompilerOptions = {
     // This should match the version targeted in the deno version that is being used.
-    target: ts.ScriptTarget.ES2022,
+    target: ts.ScriptTarget.ES5,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
     // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
@@ -383,7 +383,26 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
     noEmit: true,
     baseUrl: '.',
     paths: pathsMap
-  });
+  };
+
+  const host = ts.createCompilerHost(compilerOptions);
+  host.resolveModuleNameLiterals = (moduleLiterals: StringLiteralLike[], containingFile: string): ts.ResolvedModuleWithFailedLookupLocations[] => {
+    return moduleLiterals.map(moduleName => {
+      let moduleNameToResolve = moduleName.text;
+      // If this looks like a Deno "npm:pkgName[@version][/path]" module import, extract the node module
+      // name and resolve that instead. So long as we've done a deno vendor with --node-modules-dir
+      // then we'll have a node_modules directory that the standard TypeScript module resolution
+      // process can locate the npm package in by its name
+      const npmDepMatch = /^npm:(?<pkgName>(?:@.+?\/)?[^/\n]+?)(?:@.+)?(?:\/.+)?$/.exec(moduleName.text);
+      if (npmDepMatch) {
+        moduleNameToResolve = npmDepMatch.groups?.pkgName!;
+      }
+
+      return ts.resolveModuleName(moduleNameToResolve, containingFile, compilerOptions, { fileExists: host.fileExists, readFile: host.readFile });
+    })
+  }
+
+  const program = ts.createProgram([filename], compilerOptions, host);
 
   Deno.removeSync(deno_d_ts);
 
@@ -535,4 +554,3 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
 
   return result;
 }
-
