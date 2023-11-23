@@ -11,7 +11,7 @@ Changes to be included in the next upcoming releaase.
 
 ## v0.15
 
-Updating TS Target from 2017 to 2022.
+Updating TypeScript target version from ES2017 to ES2022.
 
 PR: https://github.com/hasura/ndc-typescript-deno/pull/73
 
