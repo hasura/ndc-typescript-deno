@@ -4,3 +4,4 @@
 vendor/
 scratch/
 src/test/vendor
+.idea
