@@ -9,6 +9,14 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.15
+
+Updating TypeScript target version from ES2017 to ES2022.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/73
+
+* Resolves issues with some dependencies such as deno.land/x/postgres@v0.17.0
+
 ## v0.14.1
 
 Diff: b1bdc55..17e85d5
