@@ -9,8 +9,6 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
-* Pre-Vendor by default.
-
 ## v0.15
 
 Updating TS Target from 2015 to 2022.
