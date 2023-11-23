@@ -371,16 +371,17 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
   `);
 
   const program = ts.createProgram([filename], {
-    target: ts.ScriptTarget.ES5,
+    // This should match the version targeted in the deno version that is being used.
+    target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
     // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
-    lib: ['lib.d.ts', 'lib.es2017.d.ts', resolve(deno_d_ts)],
+    //       This should ideally use the real deno type definitions.
+    lib: ['lib.d.ts', 'lib.es2022.d.ts',  resolve(deno_d_ts)],
     allowJs: true,
     allowImportingTsExtensions: true,
     noEmit: true,
     baseUrl: '.',
-    // '@/*': ['vendor/*'],
     paths: pathsMap
   });
 
@@ -401,7 +402,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
         console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
       } else {
-        console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+        console.error(`FATAL: ${ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")}`);
         fatal++;
       }
     });
