@@ -9,6 +9,14 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.17
+
+Fixing issue with preVendor default.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/76
+
+* Was only applying the default during user-interactive config flows
+
 ## v0.16
 
 Prevendoring by default.
