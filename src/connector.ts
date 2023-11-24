@@ -250,15 +250,15 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 Make this add in the defaults
   update_configuration(configuration: Configuration): Promise<Configuration> {
+    return Promise.resolve(configuration);
+  },
+
+  validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
     const defaults = {
       preVendor: true,
     }
     const response = { ...defaults, ...configuration }
     return Promise.resolve(response);
-  },
-
-  validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
-    return Promise.resolve(configuration);
   },
 
   get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
