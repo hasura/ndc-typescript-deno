@@ -1,10 +1,11 @@
 
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
-import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
+import { dirname, resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
+import * as rxjs from "npm:rxjs@7.8.1";
 
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
-export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.3.0-alpha.1';
+export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.3.0-alpha.1';
 
 /**
  * Implementation of the Connector interface for Deno connector.
@@ -214,6 +215,18 @@ function resolveArguments(
   return args;
 }
 
+async function buildState(config: Configuration): Promise<State> {
+  const functionsArg = resolve(config.functions || './functions/index.ts');
+  const functionsURL = `file://${functionsArg}?version=${Date.now()}`; // NOTE: This is required to run directly from deno.land.
+  const functions = await import(functionsURL);
+  
+  const info = getInfo(config);
+  return {
+    functions,
+    info
+  }
+}
+
 /**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
@@ -222,14 +235,7 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
       config: Configuration,
       _metrics: unknown
   ): Promise<State> {
-    const functionsArg = resolve(config.functions || './functions/index.ts');
-    const functionsURL = `file://${functionsArg}`; // NOTE: This is required to run directly from deno.land.
-    const functions = await import(functionsURL);
-    const info = getInfo(config);
-    return {
-      functions,
-      info
-    }
+    return await buildState(config);
   },
 
   get_capabilities(_: Configuration): sdk.CapabilitiesResponse {
@@ -331,4 +337,27 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
   fetch_metrics(_: Configuration, __: State): Promise<undefined> {
     return Promise.resolve(undefined);
   },
+
+  watch_for_state_change(configuration: Configuration): rxjs.Observable<State> {
+    const functionsFile = resolve(configuration.functions)
+    const functionsDir = dirname(functionsFile);
+    const fsWatcher = Deno.watchFs(functionsDir, { recursive: true })
+    return new rxjs.Observable((subscriber) => {
+      raiseWatchEventsToSubscriber(fsWatcher, subscriber)
+        .then(() => subscriber.complete(), err => subscriber.error(err));
+
+      // Unsubscribe callback
+      return () => {
+        fsWatcher.close();
+      }
+    })
+    .pipe(rxjs.debounceTime(200))
+    .pipe(rxjs.mergeMap(() => buildState(configuration)))
+  }
 };
+
+async function raiseWatchEventsToSubscriber(fsWatcher: Deno.FsWatcher, subscriber: rxjs.Subscriber<Deno.FsEvent>) {
+  for await (const event of fsWatcher) {
+    subscriber.next(event);
+  }
+}
