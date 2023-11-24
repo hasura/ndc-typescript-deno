@@ -372,7 +372,7 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
 
   const compilerOptions: ts.CompilerOptions = {
     // This should match the version targeted in the deno version that is being used.
-    target: ts.ScriptTarget.ES5,
+    target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.CommonJS,
     noImplicitAny: true,
     // NOTE: We just declare Deno globally as any in order to allow users to omit it's declaration in their function files
@@ -406,20 +406,26 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
 
   Deno.removeSync(deno_d_ts);
 
+  // These diagnostic codes are ignored because Deno ignores them
+  // See: https://github.com/denoland/deno/blob/bf42467e215b20b36ec6b4bf30212e4beb2dd01f/cli/tsc/99_main_compiler.js#L441
+  const ignoredDiagnosticCodes = [1452, 2306, 2688, 2792, 5009, 5055, 5070, 7016];
   const diagnostics = ts.getPreEmitDiagnostics(program);
 
   // https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API
   if (diagnostics.length) {
     let fatal = 0;
     console.error(`There were ${diagnostics.length} diagnostic errors.`);
-    diagnostics.forEach(diagnostic => {
+    diagnostics.filter(d => !ignoredDiagnosticCodes.includes(d.code)).forEach(diagnostic => {
       if (diagnostic.file) {
-        if (! resolve(diagnostic.file.fileName).startsWith(vendorPath)) {
+        let errorPrefix = "";
+        const isFatal = !resolve(diagnostic.file.fileName).startsWith(vendorPath)
+        if (isFatal) {
           fatal++;
+          errorPrefix = "FATAL: "
         }
         const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-        console.error(`${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
+        console.error(`${errorPrefix}${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
       } else {
         console.error(`FATAL: ${ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")}`);
         fatal++;
