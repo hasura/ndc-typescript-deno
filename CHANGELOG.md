@@ -9,6 +9,16 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.18
+
+Broadening dependency support, better error logging, and fixing regressions.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/77
+
+* Ignores TypeScript diagnostic error codes that Deno itself ignores.
+* Fixes the target compilation language which got broken in PR #63
+* Fatal errors occurring on a particular file are prefixed with FATAL too.
+
 ## v0.17
 
 Fixing issue with preVendor default.
