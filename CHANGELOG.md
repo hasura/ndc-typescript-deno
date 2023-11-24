@@ -17,6 +17,12 @@ PR: https://github.com/hasura/ndc-typescript-deno/pull/76
 
 * Was only applying the default during user-interactive config flows
 
+Fixing NPM inference.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/75
+
+* Creates node_modules and uses it for inference when vendoring npm dependencies
+
 ## v0.16
 
 Prevendoring by default.
