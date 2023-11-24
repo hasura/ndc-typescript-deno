@@ -339,25 +339,18 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
   },
 
   watch_for_state_change(configuration: Configuration): rxjs.Observable<State> {
-    const functionsFile = resolve(configuration.functions)
-    const functionsDir = dirname(functionsFile);
-    const fsWatcher = Deno.watchFs(functionsDir, { recursive: true })
     return new rxjs.Observable((subscriber) => {
-      raiseWatchEventsToSubscriber(fsWatcher, subscriber)
-        .then(() => subscriber.complete(), err => subscriber.error(err));
+      const listener = (event: CustomEvent) => {
+        subscriber.next(event);
+      }
+      (addEventListener as any)("hmr", listener);
 
       // Unsubscribe callback
       return () => {
-        fsWatcher.close();
+        (removeEventListener as any)("hmr", listener);
       }
     })
     .pipe(rxjs.debounceTime(200))
     .pipe(rxjs.mergeMap(() => buildState(configuration)))
   }
 };
-
-async function raiseWatchEventsToSubscriber(fsWatcher: Deno.FsWatcher, subscriber: rxjs.Subscriber<Deno.FsEvent>) {
-  for await (const event of fsWatcher) {
-    subscriber.next(event);
-  }
-}
