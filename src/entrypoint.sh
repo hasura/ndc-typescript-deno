@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ####
 # This script serves as the entrypoint for the Dockerfile
@@ -14,7 +14,7 @@ if [ -d vendor ]
 then
   echo "found existing vendor results"
 else
-  deno vendor --node-modules-dir -f index.ts
+  deno vendor --node-modules-dir --vendor /functions/vendor -f ./src/index.ts
   deno vendor -f /app/mod.ts
 fi
 
@@ -24,10 +24,10 @@ then
 else
   deno run \
     --allow-env --allow-sys --allow-read --allow-net --allow-write \
-    --import-map vendor/import_map.json \
+    --import-map ./vendor/import_map.json \
     /app/mod.ts infer \
       --vendor /functions/vendor \
-      index.ts >schema.json
+      ./src/index.ts >schema.json
 fi
 
 if [ "$EARLY_ENTRYPOINT_EXIT" ]
@@ -36,13 +36,21 @@ then
   exit 0
 fi
 
-# The config is always the same for `connector create`
-echo '{"functions": "/functions/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
-  > /config.json
+if [[ "$WATCH" == "1" || "$WATCH" == "true" ]]
+then
+  WATCH_PARAM="--watch"
+  echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": true, "schemaMode": "INFER" }' \
+    > /etc/connector/config.json
+else
+  WATCH_PARAM=""
+  echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
+    > /etc/connector/config.json
+fi
 
 deno run \
   --allow-run --allow-net --allow-read --allow-write --allow-env --allow-sys \
-  --import-map vendor/import_map.json \
+  $WATCH_PARAM \
+  --import-map ./vendor/import_map.json \
   /app/mod.ts serve \
   --port 8080 \
-  --configuration /config.json
+  --configuration /etc/connector/config.json
