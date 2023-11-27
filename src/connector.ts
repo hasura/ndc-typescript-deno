@@ -3,8 +3,7 @@ import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts"
 import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
-export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.3';
+import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 
 /**
  * Implementation of the Connector interface for Deno connector.
@@ -59,9 +58,7 @@ export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
 export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
-    query: { },
-    mutations: {
-      returning: {}
+    query: {
     },
   },
 };
@@ -234,10 +231,6 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
 
   get_capabilities(_: Configuration): sdk.CapabilitiesResponse {
     return CAPABILITIES_RESPONSE;
-  },
-
-  get_configuration_schema(): JSONSchemaObject {
-    return CONFIGURATION_SCHEMA;
   },
 
   make_empty_configuration(): Configuration {
