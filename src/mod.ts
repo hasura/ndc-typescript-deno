@@ -6,9 +6,9 @@
 
 // NOTE: Ensure that sdk matches version in connector.ts
 import * as commander  from 'npm:commander@11.0.0';
-import * as path       from "https://deno.land/std@0.203.0/path/mod.ts";
 import { programInfo } from './infer.ts'
-import { connector, sdk } from './connector.ts'
+import { connector } from './connector.ts'
+import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 
 const inferCommand = new commander.Command("infer")
   .argument('<path>', 'Typescript source entrypoint')
