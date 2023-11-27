@@ -9,6 +9,14 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming releaase.
 
+## v0.19
+
+Updating the TS SDK to 1.2.4 and fixing incorrectly required insert_schema field in mutations.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/78
+
+* Updates SDK
+
 ## v0.18
 
 Broadening dependency support, better error logging, and fixing regressions.
