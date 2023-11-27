@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.37.1
+FROM denoland/deno:alpine-1.38.3
 
 RUN mkdir /etc/connector
 COPY ./src /app

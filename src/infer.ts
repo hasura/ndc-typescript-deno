@@ -11,7 +11,7 @@
 import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6";
 import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { existsSync } from "https://deno.land/std@0.201.0/fs/mod.ts";
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 
 export type Struct<X> = Record<string, X>;
 
@@ -50,7 +50,6 @@ const scalar_mappings: {[key: string]: string} = {
 const no_ops: sdk.ScalarType = {
   aggregate_functions: {},
   comparison_operators: {},
-  update_operators: {},
 };
 
 // TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 Use standard logging from SDK
@@ -308,14 +307,14 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
 
 /**
  * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
- * @param filename_arg 
- * @param vendor_arg 
+ * @param filename 
+ * @param vendorPath 
  * @param perform_vendor 
  * @returns 
  */
-export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
+export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
   try {
-    const info = programInfoException(filename_arg, vendor_arg, perform_vendor);
+    const info = programInfoException(filename, vendorPath, perform_vendor);
     listing('Functions', info.positions, info.schema.functions)
     listing('Procedures', info.positions, info.schema.procedures)
     return info;
@@ -326,10 +325,8 @@ export function programInfo(filename_arg?: string, vendor_arg?: string, perform_
   }
 }
 
-export function programInfoException(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
+export function programInfoException(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
-  const filename = resolve(filename_arg || './functions/index.ts');
-  const vendorPath = resolve(vendor_arg || './vendor');
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
 

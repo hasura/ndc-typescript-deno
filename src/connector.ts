@@ -3,7 +3,8 @@ import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts"
 import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
-import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
+export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 
 /**
  * Implementation of the Connector interface for Deno connector.
@@ -15,7 +16,7 @@ export type State = {
   functions: any
 }
 
-export interface Configuration {
+export interface RawConfiguration {
   functions: string,
   port?: number, // Included only for punning Connector.start()
   hostname?: string, // Included only for punning Connector.start()
@@ -25,7 +26,7 @@ export interface Configuration {
   preVendor?: boolean,
 }
 
-export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
+export const RAW_CONFIGURATION_SCHEMA: JSONSchemaObject = {
   description: 'Typescript (Deno) Connector Configuration',
   type: 'object',
   required: [ 'functions' ],
@@ -55,6 +56,21 @@ export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
   }
 };
 
+type Configuration = {
+  inferenceConfig: InferenceConfig,
+  schema: sdk.SchemaResponse,
+}
+
+type InferenceConfig = {
+  functions: string,
+  schemaMode: 'READ' | 'INFER',
+  schemaLocation?: string,
+  vendorDir: string,
+  preVendor: boolean,
+}
+
+
+
 export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
@@ -79,9 +95,8 @@ type Payload<X> = {
  * @param cmdObj 
  * @returns Schema and argument position information
  */
-export function getInfo(cmdObj: Configuration): ProgramInfo {
-  const schemaMode = cmdObj.schemaMode || 'INFER';
-  switch(schemaMode) {
+export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
+  switch(cmdObj.schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
      */
@@ -96,8 +111,8 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
       return JSON.parse(decoded);
     }
     case 'INFER': {
-      console.error(`Inferring schema with map location ${cmdObj.vendor}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendor, cmdObj.preVendor);
+      console.error(`Inferring schema with map location ${cmdObj.vendorDir}`);
+      const info = programInfo(cmdObj.functions, cmdObj.vendorDir, cmdObj.preVendor);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         console.error(`Writing schema to ${cmdObj.schemaLocation}`);
@@ -214,15 +229,15 @@ function resolveArguments(
 /**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
-export const connector: sdk.Connector<Configuration, Configuration, State> = {
+export const connector: sdk.Connector<RawConfiguration, Configuration, State> = {
   async try_init_state(
       config: Configuration,
       _metrics: unknown
   ): Promise<State> {
-    const functionsArg = resolve(config.functions || './functions/index.ts');
+    const functionsArg = config.inferenceConfig.functions;
     const functionsURL = `file://${functionsArg}`; // NOTE: This is required to run directly from deno.land.
     const functions = await import(functionsURL);
-    const info = getInfo(config);
+    const info = getInfo(config.inferenceConfig);
     return {
       functions,
       info
@@ -233,8 +248,12 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
     return CAPABILITIES_RESPONSE;
   },
 
-  make_empty_configuration(): Configuration {
-    const conf: Configuration = {
+  get_raw_configuration_schema(): JSONSchemaObject {
+    return RAW_CONFIGURATION_SCHEMA;
+  },
+
+  make_empty_configuration(): RawConfiguration {
+    const conf: RawConfiguration = {
       functions: './functions/index.ts',
       vendor: './vendor'
     };
@@ -242,25 +261,30 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 Make this add in the defaults
-  update_configuration(configuration: Configuration): Promise<Configuration> {
+  update_configuration(configuration: RawConfiguration): Promise<RawConfiguration> {
     return Promise.resolve(configuration);
   },
 
-  validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
-    const defaults = {
-      preVendor: true,
+  validate_raw_configuration(configuration: RawConfiguration): Promise<Configuration> {
+    if (configuration.schemaMode === "READ" && !configuration.schemaLocation) {
+      throw new sdk.BadRequest("schemaLocation must be set if schemaMode is READ");
     }
-    const response = { ...defaults, ...configuration }
-    return Promise.resolve(response);
+    const inferenceConfig: InferenceConfig = {
+      functions: resolve(configuration.functions),
+      schemaMode: configuration.schemaMode ?? "INFER",
+      preVendor: configuration.preVendor ?? true,
+      schemaLocation: configuration.schemaLocation,
+      vendorDir: resolve(configuration.vendor || "./vendor"),
+    };
+    const result = getInfo(inferenceConfig);
+    return Promise.resolve({
+      inferenceConfig,
+      schema: result.schema
+    });
   },
 
   get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
-    const result = getInfo(config);
-    return Promise.resolve(result.schema);
-  },
-
-  get_raw_configuration_schema(): JSONSchemaObject {
-    return CONFIGURATION_SCHEMA;
+    return Promise.resolve(config.schema);
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?

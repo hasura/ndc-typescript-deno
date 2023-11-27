@@ -38,19 +38,19 @@ fi
 
 if [[ "$WATCH" == "1" || "$WATCH" == "true" ]]
 then
-  WATCH_PARAM="--watch"
+  DENO_PARAMS="--watch --no-clear-screen"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": true, "schemaMode": "INFER" }' \
     > /etc/connector/config.json
+    
 else
-  WATCH_PARAM=""
+  DENO_PARAMS="--import-map ./vendor/import_map.json"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
     > /etc/connector/config.json
 fi
 
 deno run \
   --allow-run --allow-net --allow-read --allow-write --allow-env --allow-sys \
-  $WATCH_PARAM \
-  --import-map ./vendor/import_map.json \
+  $DENO_PARAMS \
   /app/mod.ts serve \
   --port 8080 \
   --configuration /etc/connector/config.json
