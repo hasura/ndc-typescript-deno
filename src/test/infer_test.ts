@@ -1,6 +1,6 @@
 
-import * as test    from "https://deno.land/std@0.202.0/assert/mod.ts";
-import * as path    from "https://deno.land/std@0.203.0/path/mod.ts";
+import * as test    from "https://deno.land/std@0.208.0/assert/mod.ts";
+import * as path    from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer   from '../infer.ts';
 
 Deno.test("Inference", () => {
@@ -21,12 +21,10 @@ Deno.test("Inference", () => {
         Float: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
         String: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
       },
       object_types: {},
@@ -143,12 +141,10 @@ Deno.test("Complex Inference", () => {
         Float: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
         String: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
       }
     }

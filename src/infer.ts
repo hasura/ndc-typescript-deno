@@ -9,8 +9,8 @@
  */
 
 import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6";
-import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
-import { existsSync } from "https://deno.land/std@0.201.0/fs/mod.ts";
+import { resolve, dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 
 export type Struct<X> = Record<string, X>;

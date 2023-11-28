@@ -1,6 +1,6 @@
 
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
-import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
+import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
@@ -68,8 +68,6 @@ type InferenceConfig = {
   vendorDir: string,
   preVendor: boolean,
 }
-
-
 
 export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
