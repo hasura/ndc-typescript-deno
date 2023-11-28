@@ -8,6 +8,8 @@ WORKDIR /functions/src
 # Pre-cache inference results and dependencies
 RUN PRECACHE_ONLY=true /app/entrypoint.sh
 
+EXPOSE 8080
+
 ENTRYPOINT [ "/app/entrypoint.sh" ]
 
 CMD [ ]
