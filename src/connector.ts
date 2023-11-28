@@ -12,7 +12,6 @@ export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
  */
 
 export type State = {
-  info: ProgramInfo,
   functions: any
 }
 
@@ -58,7 +57,7 @@ export const RAW_CONFIGURATION_SCHEMA: JSONSchemaObject = {
 
 type Configuration = {
   inferenceConfig: InferenceConfig,
-  schema: sdk.SchemaResponse,
+  programInfo: ProgramInfo,
 }
 
 type InferenceConfig = {
@@ -191,6 +190,7 @@ function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefin
 }
 
 async function query(
+  configuration: Configuration,
   state: State,
   func: string,
   requestArgs: Struct<unknown>,
@@ -201,7 +201,7 @@ async function query(
     args: requestArgs
   };
   try {
-    const result = await invoke(state.functions, state.info.positions, payload);
+    const result = await invoke(state.functions, configuration.programInfo.positions, payload);
     const pruned = pruneFields(func, requestFields, result);
     return pruned;
   } catch(e) {
@@ -235,10 +235,8 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
     const functionsArg = config.inferenceConfig.functions;
     const functionsURL = `file://${functionsArg}`; // NOTE: This is required to run directly from deno.land.
     const functions = await import(functionsURL);
-    const info = getInfo(config.inferenceConfig);
     return {
-      functions,
-      info
+      functions
     }
   },
 
@@ -274,15 +272,15 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
       schemaLocation: configuration.schemaLocation,
       vendorDir: resolve(configuration.vendor || "./vendor"),
     };
-    const result = getInfo(inferenceConfig);
+    const programInfo = getInfo(inferenceConfig);
     return Promise.resolve({
       inferenceConfig,
-      schema: result.schema
+      programInfo
     });
   },
 
   get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
-    return Promise.resolve(config.schema);
+    return Promise.resolve(config.programInfo.schema);
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?
@@ -296,12 +294,12 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
 
   // NOTE: query and mutation both make all functions available and discrimination is performed by the schema
   async query(
-    _configuration: Configuration,
+    configuration: Configuration,
     state: State,
     request: sdk.QueryRequest
   ): Promise<sdk.QueryResponse> {
     const args = resolveArguments(request.collection, request.arguments);
-    const result = await query(state, request.collection, args, request.query.fields);
+    const result = await query(configuration, state, request.collection, args, request.query.fields);
     return [{
       aggregates: {},
       rows: [{
@@ -311,7 +309,7 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
   },
 
   async mutation(
-    _configuration: Configuration,
+    configuration: Configuration,
     state: State,
     request: sdk.MutationRequest
   ): Promise<sdk.MutationResponse> {
@@ -319,7 +317,7 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
     for(const op of request.operations) {
       switch(op.type) {
         case 'procedure': {
-          const result = await query(state, op.name, op.arguments, op.fields);
+          const result = await query(configuration, state, op.name, op.arguments, op.fields);
           results.push({
             affected_rows: 1,
             returning: [{
