@@ -41,7 +41,7 @@ then
   DENO_PARAMS="--watch --no-clear-screen"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": true, "schemaMode": "INFER" }' \
     > /etc/connector/config.json
-    
+
 else
   DENO_PARAMS="--import-map ./vendor/import_map.json"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \

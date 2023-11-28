@@ -2,10 +2,10 @@
 /**
  * This module provides the inference implementation for the connector.
  * It relies on the Typescript compiler to perform the heavy lifting.
- * 
+ *
  * The exported function that is intended for use is `programInfo`.
- * 
- * Dependencies are required to be vendored before invocation. 
+ *
+ * Dependencies are required to be vendored before invocation.
  */
 
 import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6";
@@ -137,7 +137,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   const info = get_object_type_info(root_file, checker, ty, name);
   if (info) {
     const type_str_qualified = info.type_name; // lookup_type_name(root_file, checker, info, object_names, name, ty);
-    
+
     // Shortcut recursion if the type has already been named
     if(schema_response.object_types[type_str_qualified]) {
       return { type: 'named', name: type_str_qualified };
@@ -178,7 +178,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
 
 /**
  * Executes `deno vendor` in a subprocess as a conveneience.
- * 
+ *
  * @param vendorPath
  * @param filename
  */
@@ -207,10 +207,10 @@ function error(message: string): never {
 
 /**
  * Logs simple listing of functions/procedures on stderr.
- * 
- * @param prompt 
- * @param positions 
- * @param info 
+ *
+ * @param prompt
+ * @param positions
+ * @param info
  */
 function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.FunctionInfo>) {
   if(info.length > 0) {
@@ -262,7 +262,7 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
   // - type Bar = { test: string }
   // - type GenericBar<T> = { data: T }
   if ((ty.objectFlags & ts.ObjectFlags.Anonymous) !== 0) {
-    const members = 
+    const members =
       ty.aliasTypeArguments !== undefined
         ? ty.target.members
         : ty.members;
@@ -280,7 +280,7 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
       generic_parameter_types: [],
       members: get_members(checker, ty, Array.from(ty.members.keys())),
     }
-  } 
+  }
   // Generic interface type - this covers:
   // interface IGenericThing<T> { data: T }
   else if ((ty.objectFlags & ts.ObjectFlags.Reference) !== 0 && (ty.target.objectFlags & ts.ObjectFlags.Interface) !== 0 && checker.isArrayType(ty) == false && ty.symbol.escapedName !== "Promise") {
@@ -307,10 +307,10 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
 
 /**
  * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
- * @param filename 
- * @param vendorPath 
- * @param perform_vendor 
- * @returns 
+ * @param filename
+ * @param vendorPath
+ * @param perform_vendor
+ * @returns
  */
 export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
   try {

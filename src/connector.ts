@@ -1,3 +1,7 @@
+/**
+ * Implementation of the Connector interface for Deno connector.
+ * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
+ */
 
 import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
 import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
@@ -5,11 +9,6 @@ import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
 export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
-
-/**
- * Implementation of the Connector interface for Deno connector.
- * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
- */
 
 export type State = {
   functions: any
@@ -88,8 +87,8 @@ type Payload<X> = {
 /**
  * Performs analysis on the supplied program.
  * Expects that if there are dependencies then they will have been vendored.
- * 
- * @param cmdObj 
+ *
+ * @param cmdObj
  * @returns Schema and argument position information
  */
 export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
@@ -128,10 +127,10 @@ export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
  * Performs invocation of the requested function.
  * Assembles the arguments into the correct order.
  * This doesn't catch any exceptions.
- * 
- * @param functions 
- * @param positions 
- * @param payload 
+ *
+ * @param functions
+ * @param positions
+ * @param payload
  * @returns the result of invocation with no wrapper
  */
 async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
@@ -149,9 +148,9 @@ async function invoke(functions: any, positions: FunctionPositions, payload: Pay
 /**
  * This takes argument position information and a payload of function
  * and named arguments and returns the correctly ordered arguments ready to be applied.
- * 
- * @param functions 
- * @param payload 
+ *
+ * @param functions
+ * @param payload
  * @returns An array of the function's arguments in the definition order
  */
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
@@ -262,8 +261,11 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
   },
 
   validate_raw_configuration(configuration: RawConfiguration): Promise<Configuration> {
+    if (configuration.functions.trim() === "") {
+      throw new sdk.BadRequest("'functions' must be set to the location of the TypeScript file that contains your functions")
+    }
     if (configuration.schemaMode === "READ" && !configuration.schemaLocation) {
-      throw new sdk.BadRequest("schemaLocation must be set if schemaMode is READ");
+      throw new sdk.BadRequest("'schemaLocation' must be set if 'schemaMode' is READ");
     }
     const inferenceConfig: InferenceConfig = {
       functions: resolve(configuration.functions),
