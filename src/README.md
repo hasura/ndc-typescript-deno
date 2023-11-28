@@ -1,8 +1,8 @@
-# Hasura NDC Typescript (Deno) Connector
+# Hasura NDC TypeScript (Deno) Connector
 
 ![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/9f139964-d0ed-4c92-b01f-9fda255717d4)
 
-The Typescript (Deno) Connector allows a running connector to be inferred from a Typescript file (optionally with dependencies).
+The TypeScript (Deno) Connector allows a running connector to be inferred from a TypeScript file (optionally with dependencies).
 
 ![image](https://github.com/hasura/ndc-typescript-deno/assets/92299/fb7f4afd-0302-432b-b7ce-3cc7d1f3546b)
 
@@ -19,14 +19,13 @@ Once your project is set up, run locally with:
 {
   "functions": "./functions/index.ts",
   "vendor": "./vendor",
-  "preVendor": true,
   "schemaMode": "INFER"
 }
 
 > deno run -A --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 
-## Typescript Functions Format
+## TypeScript Functions Format
 
 Your functions should be organised into a directory with one file acting as the entrypoint.
 
