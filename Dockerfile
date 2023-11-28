@@ -6,7 +6,7 @@ COPY ./functions /functions/src
 WORKDIR /functions/src
 
 # Pre-cache inference results and dependencies
-RUN EARLY_ENTRYPOINT_EXIT=true /app/entrypoint.sh
+RUN PRECACHE_ONLY=true /app/entrypoint.sh
 
 ENTRYPOINT [ "/app/entrypoint.sh" ]
 

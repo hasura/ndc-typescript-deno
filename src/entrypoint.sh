@@ -30,7 +30,7 @@ else
       ./src/index.ts >schema.json
 fi
 
-if [ "$EARLY_ENTRYPOINT_EXIT" ]
+if [ "$PRECACHE_ONLY" ]
 then
   echo "Thanks for running pre-caching - Please come again soon!"
   exit 0
