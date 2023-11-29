@@ -1,6 +1,5 @@
 FROM denoland/deno:alpine-1.38.3
 
-RUN mkdir /etc/connector
 COPY ./src /app
 RUN deno cache /app/mod.ts
 

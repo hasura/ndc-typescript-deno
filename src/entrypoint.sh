@@ -2,7 +2,7 @@
 
 ####
 # This script serves as the entrypoint for the Dockerfile
-# It is used both during the build phase (with EARLY_ENTRYPOINT_EXIT=true), and during the run phase.
+# It is used both during the build phase (with PRECACHE_ONLY=true), and during the run phase.
 # This could be split into two scripts easily enough if that is required.
 ####
 
@@ -44,12 +44,12 @@ if [[ "$WATCH" == "1" || "$WATCH" == "true" ]]
 then
   DENO_PARAMS="--watch --no-clear-screen"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": true, "schemaMode": "INFER" }' \
-    > /etc/connector/hardcoded-config.json
+    > /etc/connector-config.json
 
 else
   DENO_PARAMS=""
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": false, "schemaMode": "READ", "schemaLocation": "/functions/schema.json"}' \
-    > /etc/connector/hardcoded-config.json
+    > /etc/connector-config.json
 fi
 
 deno run \
@@ -57,4 +57,4 @@ deno run \
   $DENO_PARAMS \
   /app/mod.ts serve \
   --port 8080 \
-  --configuration /etc/connector/hardcoded-config.json
+  --configuration /etc/connector-config.json
