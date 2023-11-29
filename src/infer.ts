@@ -305,21 +305,7 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
   return null;
 }
 
-/**
- * This wraps the exception variant programInfoException and prints listing for the inference results
- * @param filename
- * @param vendorPath
- * @param perform_vendor
- * @returns
- */
 export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
-  const info = programInfoException(filename, vendorPath, perform_vendor);
-  listing('Functions', info.positions, info.schema.functions)
-  listing('Procedures', info.positions, info.schema.procedures)
-  return info;
-}
-
-export function programInfoException(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
@@ -548,6 +534,9 @@ export function programInfoException(filename: string, vendorPath: string, perfo
     schema: schema_response,
     positions
   }
+
+  listing('Functions', result.positions, result.schema.functions)
+  listing('Procedures', result.positions, result.schema.procedures)
 
   return result;
 }
