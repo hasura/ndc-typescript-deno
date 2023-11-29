@@ -6,7 +6,7 @@
 import * as commander  from 'npm:commander@11.0.0';
 import { programInfo } from './infer.ts'
 import { connector } from './connector.ts'
-import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
+import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 
 const inferCommand = new commander.Command("infer")
   .argument('<path>', 'TypeScript source entrypoint')
