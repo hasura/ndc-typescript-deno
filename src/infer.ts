@@ -306,23 +306,17 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
 }
 
 /**
- * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
+ * This wraps the exception variant programInfoException and prints listing for the inference results
  * @param filename
  * @param vendorPath
  * @param perform_vendor
  * @returns
  */
 export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
-  try {
-    const info = programInfoException(filename, vendorPath, perform_vendor);
-    listing('Functions', info.positions, info.schema.functions)
-    listing('Procedures', info.positions, info.schema.procedures)
-    return info;
-  } catch(e) {
-    console.error(e.message);
-    // console.error(e.stack);
-    Deno.exit(1);
-  }
+  const info = programInfoException(filename, vendorPath, perform_vendor);
+  listing('Functions', info.positions, info.schema.functions)
+  listing('Procedures', info.positions, info.schema.procedures)
+  return info;
 }
 
 export function programInfoException(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {

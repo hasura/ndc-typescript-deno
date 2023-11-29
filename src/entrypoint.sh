@@ -42,7 +42,7 @@ fi
 
 if [[ "$WATCH" == "1" || "$WATCH" == "true" ]]
 then
-  DENO_PARAMS="--watch --no-clear-screen"
+  DENO_PARAMS="--watch=/functions/src --no-clear-screen"
   echo '{"functions": "/functions/src/index.ts", "vendor": "/functions/vendor", "preVendor": true, "schemaMode": "INFER" }' \
     > /etc/connector-config.json
 

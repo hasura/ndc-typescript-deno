@@ -22,7 +22,7 @@ Once your project is set up, run locally with:
   "schemaMode": "INFER"
 }
 
-> deno run -A --watch --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
+> deno run -A --watch=./functions --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 
 ## TypeScript Functions Format
