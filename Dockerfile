@@ -1,14 +1,15 @@
-FROM denoland/deno:alpine-1.37.1
+FROM denoland/deno:alpine-1.38.3
 
 COPY ./src /app
-COPY ./functions /functions 
-WORKDIR /functions
+RUN deno cache /app/mod.ts
 
-RUN ls /app
+COPY ./functions /functions/src
 
 # Pre-cache inference results and dependencies
-RUN EARLY_ENTRYPOINT_EXIT=true sh /app/entrypoint.sh
+RUN PRECACHE_ONLY=true /app/entrypoint.sh
 
-ENTRYPOINT [ "sh", "/app/entrypoint.sh" ]
+EXPOSE 8080
+
+ENTRYPOINT [ "/app/entrypoint.sh" ]
 
 CMD [ ]

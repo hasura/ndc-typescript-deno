@@ -7,7 +7,7 @@ This changelog documents the changes between release versions.
 
 ## main
 
-Changes to be included in the next upcoming releaase.
+Changes to be included in the next upcoming release.
 
 ## v0.19
 

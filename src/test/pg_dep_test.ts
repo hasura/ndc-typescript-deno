@@ -1,6 +1,6 @@
 
-import * as test    from "https://deno.land/std@0.202.0/assert/mod.ts";
-import * as path    from "https://deno.land/std@0.203.0/path/mod.ts";
+import * as test    from "https://deno.land/std@0.208.0/assert/mod.ts";
+import * as path    from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer   from '../infer.ts';
 
 // NOTE: It would be good to have explicit timeout for this
@@ -84,17 +84,14 @@ Deno.test("Inferred Dependency Based Result Type", () => {
         String: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
         insert_todos_output: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
         insert_user_output: {
           aggregate_functions: {},
           comparison_operators: {},
-          update_operators: {},
         },
       },
       object_types: {},

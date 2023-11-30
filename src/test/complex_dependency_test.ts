@@ -1,6 +1,6 @@
 
-import * as test    from "https://deno.land/std@0.202.0/assert/mod.ts";
-import * as path    from "https://deno.land/std@0.203.0/path/mod.ts";
+import * as test    from "https://deno.land/std@0.208.0/assert/mod.ts";
+import * as path    from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer   from '../infer.ts';
 
 // This program omits its return type and it is inferred via the 'fetch' dependency.

@@ -1,5 +1,3 @@
-
-
 /**
  * Typescript entrypoint for running the connector.
  */
@@ -8,10 +6,10 @@
 import * as commander  from 'npm:commander@11.0.0';
 import { programInfo } from './infer.ts'
 import { connector } from './connector.ts'
-import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
+import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 
 const inferCommand = new commander.Command("infer")
-  .argument('<path>', 'Typescript source entrypoint')
+  .argument('<path>', 'TypeScript source entrypoint')
   .option('-v, --vendor <path>', 'Vendor location (optional)')
   .action((entrypoint, cmdObj, _command) => {
     const output = programInfo(entrypoint, cmdObj.vendor, cmdObj.preVendor);

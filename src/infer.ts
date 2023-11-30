@@ -2,16 +2,16 @@
 /**
  * This module provides the inference implementation for the connector.
  * It relies on the Typescript compiler to perform the heavy lifting.
- * 
+ *
  * The exported function that is intended for use is `programInfo`.
- * 
- * Dependencies are required to be vendored before invocation. 
+ *
+ * Dependencies are required to be vendored before invocation.
  */
 
 import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6";
-import { resolve, dirname } from "https://deno.land/std@0.203.0/path/mod.ts";
-import { existsSync } from "https://deno.land/std@0.201.0/fs/mod.ts";
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.0.0';
+import { resolve, dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 
 export type Struct<X> = Record<string, X>;
 
@@ -50,7 +50,6 @@ const scalar_mappings: {[key: string]: string} = {
 const no_ops: sdk.ScalarType = {
   aggregate_functions: {},
   comparison_operators: {},
-  update_operators: {},
 };
 
 // TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 Use standard logging from SDK
@@ -138,7 +137,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   const info = get_object_type_info(root_file, checker, ty, name);
   if (info) {
     const type_str_qualified = info.type_name; // lookup_type_name(root_file, checker, info, object_names, name, ty);
-    
+
     // Shortcut recursion if the type has already been named
     if(schema_response.object_types[type_str_qualified]) {
       return { type: 'named', name: type_str_qualified };
@@ -179,7 +178,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
 
 /**
  * Executes `deno vendor` in a subprocess as a conveneience.
- * 
+ *
  * @param vendorPath
  * @param filename
  */
@@ -208,10 +207,10 @@ function error(message: string): never {
 
 /**
  * Logs simple listing of functions/procedures on stderr.
- * 
- * @param prompt 
- * @param positions 
- * @param info 
+ *
+ * @param prompt
+ * @param positions
+ * @param info
  */
 function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.FunctionInfo>) {
   if(info.length > 0) {
@@ -263,7 +262,7 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
   // - type Bar = { test: string }
   // - type GenericBar<T> = { data: T }
   if ((ty.objectFlags & ts.ObjectFlags.Anonymous) !== 0) {
-    const members = 
+    const members =
       ty.aliasTypeArguments !== undefined
         ? ty.target.members
         : ty.members;
@@ -281,7 +280,7 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
       generic_parameter_types: [],
       members: get_members(checker, ty, Array.from(ty.members.keys())),
     }
-  } 
+  }
   // Generic interface type - this covers:
   // interface IGenericThing<T> { data: T }
   else if ((ty.objectFlags & ts.ObjectFlags.Reference) !== 0 && (ty.target.objectFlags & ts.ObjectFlags.Interface) !== 0 && checker.isArrayType(ty) == false && ty.symbol.escapedName !== "Promise") {
@@ -306,30 +305,8 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
   return null;
 }
 
-/**
- * This wraps the exception variant programInfoException and calls Deno.exit(1) on error.
- * @param filename_arg 
- * @param vendor_arg 
- * @param perform_vendor 
- * @returns 
- */
-export function programInfo(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
-  try {
-    const info = programInfoException(filename_arg, vendor_arg, perform_vendor);
-    listing('Functions', info.positions, info.schema.functions)
-    listing('Procedures', info.positions, info.schema.procedures)
-    return info;
-  } catch(e) {
-    console.error(e.message);
-    // console.error(e.stack);
-    Deno.exit(1);
-  }
-}
-
-export function programInfoException(filename_arg?: string, vendor_arg?: string, perform_vendor?: boolean): ProgramInfo {
+export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
-  const filename = resolve(filename_arg || './functions/index.ts');
-  const vendorPath = resolve(vendor_arg || './vendor');
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
 
@@ -557,6 +534,9 @@ export function programInfoException(filename_arg?: string, vendor_arg?: string,
     schema: schema_response,
     positions
   }
+
+  listing('Functions', result.positions, result.schema.functions)
+  listing('Procedures', result.positions, result.schema.procedures)
 
   return result;
 }

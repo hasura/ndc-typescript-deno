@@ -1,21 +1,20 @@
-
-import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
-import { resolve } from "https://deno.land/std@0.203.0/path/mod.ts";
-import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
-
-import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.4';
-
 /**
  * Implementation of the Connector interface for Deno connector.
  * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
  */
 
+import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
+import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
+
+import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
+export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
+
 export type State = {
-  info: ProgramInfo,
   functions: any
 }
 
-export interface Configuration {
+export interface RawConfiguration {
   functions: string,
   port?: number, // Included only for punning Connector.start()
   hostname?: string, // Included only for punning Connector.start()
@@ -25,7 +24,7 @@ export interface Configuration {
   preVendor?: boolean,
 }
 
-export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
+export const RAW_CONFIGURATION_SCHEMA: JSONSchemaObject = {
   description: 'Typescript (Deno) Connector Configuration',
   type: 'object',
   required: [ 'functions' ],
@@ -55,6 +54,19 @@ export const CONFIGURATION_SCHEMA: JSONSchemaObject = {
   }
 };
 
+type Configuration = {
+  inferenceConfig: InferenceConfig,
+  programInfo: ProgramInfo,
+}
+
+type InferenceConfig = {
+  functions: string,
+  schemaMode: 'READ' | 'INFER',
+  schemaLocation?: string,
+  vendorDir: string,
+  preVendor: boolean,
+}
+
 export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
@@ -75,13 +87,12 @@ type Payload<X> = {
 /**
  * Performs analysis on the supplied program.
  * Expects that if there are dependencies then they will have been vendored.
- * 
- * @param cmdObj 
+ *
+ * @param cmdObj
  * @returns Schema and argument position information
  */
-export function getInfo(cmdObj: Configuration): ProgramInfo {
-  const schemaMode = cmdObj.schemaMode || 'INFER';
-  switch(schemaMode) {
+export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
+  switch(cmdObj.schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
      */
@@ -96,8 +107,8 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
       return JSON.parse(decoded);
     }
     case 'INFER': {
-      console.error(`Inferring schema with map location ${cmdObj.vendor}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendor, cmdObj.preVendor);
+      console.error(`Inferring schema with map location ${cmdObj.vendorDir}`);
+      const info = programInfo(cmdObj.functions, cmdObj.vendorDir, cmdObj.preVendor);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         console.error(`Writing schema to ${cmdObj.schemaLocation}`);
@@ -116,10 +127,10 @@ export function getInfo(cmdObj: Configuration): ProgramInfo {
  * Performs invocation of the requested function.
  * Assembles the arguments into the correct order.
  * This doesn't catch any exceptions.
- * 
- * @param functions 
- * @param positions 
- * @param payload 
+ *
+ * @param functions
+ * @param positions
+ * @param payload
  * @returns the result of invocation with no wrapper
  */
 async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
@@ -137,9 +148,9 @@ async function invoke(functions: any, positions: FunctionPositions, payload: Pay
 /**
  * This takes argument position information and a payload of function
  * and named arguments and returns the correctly ordered arguments ready to be applied.
- * 
- * @param functions 
- * @param payload 
+ *
+ * @param functions
+ * @param payload
  * @returns An array of the function's arguments in the definition order
  */
 function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
@@ -178,6 +189,7 @@ function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefin
 }
 
 async function query(
+  configuration: Configuration,
   state: State,
   func: string,
   requestArgs: Struct<unknown>,
@@ -188,7 +200,7 @@ async function query(
     args: requestArgs
   };
   try {
-    const result = await invoke(state.functions, state.info.positions, payload);
+    const result = await invoke(state.functions, configuration.programInfo.positions, payload);
     const pruned = pruneFields(func, requestFields, result);
     return pruned;
   } catch(e) {
@@ -214,18 +226,16 @@ function resolveArguments(
 /**
  * See https://github.com/hasura/ndc-sdk-typescript for information on these interfaces.
  */
-export const connector: sdk.Connector<Configuration, Configuration, State> = {
+export const connector: sdk.Connector<RawConfiguration, Configuration, State> = {
   async try_init_state(
       config: Configuration,
       _metrics: unknown
   ): Promise<State> {
-    const functionsArg = resolve(config.functions || './functions/index.ts');
+    const functionsArg = config.inferenceConfig.functions;
     const functionsURL = `file://${functionsArg}`; // NOTE: This is required to run directly from deno.land.
     const functions = await import(functionsURL);
-    const info = getInfo(config);
     return {
-      functions,
-      info
+      functions
     }
   },
 
@@ -233,8 +243,12 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
     return CAPABILITIES_RESPONSE;
   },
 
-  make_empty_configuration(): Configuration {
-    const conf: Configuration = {
+  get_raw_configuration_schema(): JSONSchemaObject {
+    return RAW_CONFIGURATION_SCHEMA;
+  },
+
+  make_empty_configuration(): RawConfiguration {
+    const conf: RawConfiguration = {
       functions: './functions/index.ts',
       vendor: './vendor'
     };
@@ -242,25 +256,33 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 Make this add in the defaults
-  update_configuration(configuration: Configuration): Promise<Configuration> {
+  update_configuration(configuration: RawConfiguration): Promise<RawConfiguration> {
     return Promise.resolve(configuration);
   },
 
-  validate_raw_configuration(configuration: Configuration): Promise<Configuration> {
-    const defaults = {
-      preVendor: true,
+  validate_raw_configuration(configuration: RawConfiguration): Promise<Configuration> {
+    if (configuration.functions.trim() === "") {
+      throw new sdk.BadRequest("'functions' must be set to the location of the TypeScript file that contains your functions")
     }
-    const response = { ...defaults, ...configuration }
-    return Promise.resolve(response);
+    if (configuration.schemaMode === "READ" && !configuration.schemaLocation) {
+      throw new sdk.BadRequest("'schemaLocation' must be set if 'schemaMode' is READ");
+    }
+    const inferenceConfig: InferenceConfig = {
+      functions: resolve(configuration.functions),
+      schemaMode: configuration.schemaMode ?? "INFER",
+      preVendor: configuration.preVendor ?? true,
+      schemaLocation: configuration.schemaLocation,
+      vendorDir: resolve(configuration.vendor || "./vendor"),
+    };
+    const programInfo = getInfo(inferenceConfig);
+    return Promise.resolve({
+      inferenceConfig,
+      programInfo
+    });
   },
 
   get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
-    const result = getInfo(config);
-    return Promise.resolve(result.schema);
-  },
-
-  get_raw_configuration_schema(): JSONSchemaObject {
-    return CONFIGURATION_SCHEMA;
+    return Promise.resolve(config.programInfo.schema);
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?
@@ -274,12 +296,12 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
 
   // NOTE: query and mutation both make all functions available and discrimination is performed by the schema
   async query(
-    _configuration: Configuration,
+    configuration: Configuration,
     state: State,
     request: sdk.QueryRequest
   ): Promise<sdk.QueryResponse> {
     const args = resolveArguments(request.collection, request.arguments);
-    const result = await query(state, request.collection, args, request.query.fields);
+    const result = await query(configuration, state, request.collection, args, request.query.fields);
     return [{
       aggregates: {},
       rows: [{
@@ -289,7 +311,7 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
   },
 
   async mutation(
-    _configuration: Configuration,
+    configuration: Configuration,
     state: State,
     request: sdk.MutationRequest
   ): Promise<sdk.MutationResponse> {
@@ -297,7 +319,7 @@ export const connector: sdk.Connector<Configuration, Configuration, State> = {
     for(const op of request.operations) {
       switch(op.type) {
         case 'procedure': {
-          const result = await query(state, op.name, op.arguments, op.fields);
+          const result = await query(configuration, state, op.name, op.arguments, op.fields);
           results.push({
             affected_rows: 1,
             returning: [{
