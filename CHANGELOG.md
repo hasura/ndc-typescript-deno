@@ -1,4 +1,4 @@
-# Typescript (Deno) Connector Changelog
+# TypeScript (Deno) Connector Changelog
 
 This changelog documents the changes between release versions.
 
@@ -8,6 +8,20 @@ This changelog documents the changes between release versions.
 ## main
 
 Changes to be included in the next upcoming release.
+
+## v0.20
+
+Improved support for running the connector in Watch mode, where it will auto-restart when changes
+to the functions are made.
+
+* The Docker container is now compatible with watch mode and can be used for local development
+* README documentation about watch mode updated to indicate the need to explicitly watch the functions 
+  folder (ie `--watch=./functions`)
+* `schemaLocation` configuration property is now required
+* Type inference is now only done at connector startup, not every time the `/schema` endpoint is called
+* Updated TypeScript SDK to v1.2.5
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/79
 
 ## v0.19
 
