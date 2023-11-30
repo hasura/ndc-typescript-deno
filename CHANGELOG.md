@@ -17,7 +17,7 @@ to the functions are made.
 * The Docker container is now compatible with watch mode and can be used for local development
 * README documentation about watch mode updated to indicate the need to explicitly watch the functions 
   folder (ie `--watch=./functions`)
-* `schemaLocation` configuration property is now required
+* `functions` configuration property is now required
 * Type inference is now only done at connector startup, not every time the `/schema` endpoint is called
 * Updated TypeScript SDK to v1.2.5
 
