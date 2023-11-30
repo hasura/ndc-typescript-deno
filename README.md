@@ -139,6 +139,7 @@ local development will reward you with much more rapid feedback.
 In order to develop your functions locally the following is the recommended practice:
 
 * Have a `./functions/` directory in your project
+* Create your functions in an `index.ts` file inside the `./functions/` directory
 * Create a development config for your connector in `./config.json`:
 ```json
 {
@@ -153,6 +154,18 @@ In order to develop your functions locally the following is the recommended prac
 deno run -A --watch=./functions --check https://deno.land/x/hasura_typescript_connector/mod.ts serve --configuration ./config.json
 ```
 * (Optionally) Add a test-suite for your functions. See [Deno Testing Basics](https://docs.deno.com/runtime/manual/basics/testing).
+
+
+## Local Development of your Functions (Docker)
+You can also perform local development with rapid feedback by using the Docker container instead 
+of `deno run`. You don't need a `config.json` in this case.
+
+* Have a `./functions/` directory in your project
+* Create your functions in an `index.ts` file inside the `./functions/` directory
+* Start the connector using Docker:
+```bash
+docker run -it --rm -v ./functions:/functions/src -p 8080:8080 -e WATCH=1 ghcr.io/hasura/ndc-typescript-deno:latest
+```
 
 
 ## Config Format
