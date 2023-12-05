@@ -3,7 +3,7 @@
  * This module provides the inference implementation for the connector.
  * It relies on the Typescript compiler to perform the heavy lifting.
  *
- * The exported function that is intended for use is `programInfo`.
+ * The exported function that is intended for use is `inferProgramSchema`.
  *
  * Dependencies are required to be vendored before invocation.
  */
@@ -12,28 +12,138 @@ import ts, { FunctionDeclaration, StringLiteralLike } from "npm:typescript@5.1.6
 import { resolve, dirname } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { existsSync } from "https://deno.land/std@0.208.0/fs/mod.ts";
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
+import { mapObject, mapObjectValues, unreachable } from "./util.ts";
 
 export type Struct<X> = Record<string, X>;
 
-export type FunctionPositions = Struct<Array<string>>
-
-export type ProgramInfo = {
-  schema: sdk.SchemaResponse,
-  positions: FunctionPositions
+export type ProgramSchema = {
+  functions: FunctionDefinitions
+  object_types: ObjectTypeDefinitions
+  scalar_types: ScalarTypeDefinitions
 }
 
-function mapObject<I, O>(obj: {[key: string]: I}, fn: ((key: string, value: I) => [string, O])): {[key: string]: O} {
-  const keys: Array<string> = Object.keys(obj);
-  const result: {[key: string]: O} = {};
-  for(const k of keys) {
-    const [k2, v] = fn(k, obj[k]);
-    result[k2] = v;
+export type FunctionDefinitions = {
+  [function_name: string]: FunctionDefinition
+}
+
+export type FunctionDefinition = {
+  ndc_kind: FunctionNdcKind
+  description: string | null,
+  arguments: ArgumentDefinition[] // Function arguments are ordered
+  result_type: TypeDefinition
+}
+
+export enum FunctionNdcKind {
+  Function = "Function",
+  Procedure = "Procedure"
+}
+
+export type ArgumentDefinition = {
+  argument_name: string,
+  description: string | null,
+  type: TypeDefinition
+}
+
+export type ObjectTypeDefinitions = {
+  [object_type_name: string]: ObjectTypeDefinition
+}
+
+export type ObjectTypeDefinition = {
+  properties: ObjectPropertyDefinition[]
+}
+
+export type ObjectPropertyDefinition = {
+  property_name: string,
+  type: TypeDefinition,
+}
+
+export type ScalarTypeDefinitions = {
+  [scalar_type_name: string]: ScalarTypeDefinition
+}
+
+export type ScalarTypeDefinition = Record<string, never> // Empty object, for now
+
+export type TypeDefinition = ArrayTypeDefinition | NullableTypeDefinition | NamedTypeDefinition
+
+export type ArrayTypeDefinition = {
+  type: "array"
+  element_type: TypeDefinition
+}
+
+export type NullableTypeDefinition = {
+  type: "nullable",
+  null_or_undefinability: NullOrUndefinability
+  underlying_type: TypeDefinition
+}
+
+export type NamedTypeDefinition = {
+  type: "named"
+  name: string
+  kind: "scalar" | "object"
+}
+
+export enum NullOrUndefinability {
+  AcceptsNullOnly = "AcceptsNullOnly",
+  AcceptsUndefinedOnly = "AcceptsUndefinedOnly",
+  AcceptsEither = "AcceptsEither",
+}
+
+export function get_ndc_schema(programInfo: ProgramSchema): sdk.SchemaResponse {
+  const functions = Object.entries(programInfo.functions);
+
+  const object_types = mapObjectValues(programInfo.object_types, obj_def => {
+    return {
+      fields: Object.fromEntries(obj_def.properties.map(prop_def => [prop_def.property_name, { type: convert_type_definition_to_sdk_type(prop_def.type)}]))
+    }
+  });
+
+  const scalar_types = mapObjectValues(programInfo.scalar_types, _scalar_def => {
+    return {
+      aggregate_functions: {},
+      comparison_operators: {},
+    }
+  })
+
+  return {
+    functions: functions
+      .filter(([_, def]) => def.ndc_kind === FunctionNdcKind.Function)
+      .map(([name, def]) => convert_function_definition_to_sdk_schema_type(name, def)),
+    procedures: functions
+      .filter(([_, def]) => def.ndc_kind === FunctionNdcKind.Procedure)
+      .map(([name, def]) => convert_function_definition_to_sdk_schema_type(name, def)),
+    collections: [],
+    object_types,
+    scalar_types,
   }
-  return result;
 }
 
-function isParameterDeclaration(node: ts.Node | undefined): node is ts.ParameterDeclaration {
-  return node?.kind === ts.SyntaxKind.Parameter;
+function convert_type_definition_to_sdk_type(typeDef: TypeDefinition): sdk.Type {
+  switch (typeDef.type) {
+    case "array": return { type: "array", element_type: convert_type_definition_to_sdk_type(typeDef.element_type) }
+    case "nullable": return { type: "nullable", underlying_type: convert_type_definition_to_sdk_type(typeDef.underlying_type) }
+    case "named": return { type: "named", name: typeDef.name }
+    default: return unreachable(typeDef["type"])
+  }
+}
+
+function convert_function_definition_to_sdk_schema_type(function_name: string, definition: FunctionDefinition): sdk.FunctionInfo | sdk.ProcedureInfo {
+  const args =
+    definition.arguments
+      .map(arg_def =>
+        [ arg_def.argument_name,
+          {
+            description: definition.description ?? undefined,
+            type: convert_type_definition_to_sdk_type(arg_def.type)
+          }
+        ]
+      );
+
+  return {
+    name: function_name,
+    arguments: Object.fromEntries(args),
+    result_type: convert_type_definition_to_sdk_type(definition.result_type),
+    description: definition.description ?? undefined,
+  }
 }
 
 const scalar_mappings: {[key: string]: string} = {
@@ -46,21 +156,10 @@ const scalar_mappings: {[key: string]: string} = {
   // "void": "Void",            // Void type can be included to permit void types as scalars
 };
 
-// NOTE: This should be able to be made read only
-const no_ops: sdk.ScalarType = {
-  aggregate_functions: {},
-  comparison_operators: {},
-};
-
 // TODO: https://github.com/hasura/ndc-typescript-deno/issues/21 Use standard logging from SDK
 const LOG_LEVEL = Deno.env.get("LOG_LEVEL") || "INFO";
 const DEBUG = LOG_LEVEL == 'DEBUG';
 const MAX_INFERENCE_RECURSION = 20; // Better to abort than get into an infinite loop, this could be increased if required.
-
-type TypeNames = Array<{
-  type: ts.Type,
-  name: string
-}>;
 
 function gql_name(n: string): string {
   // Construct a GraphQL complient name: https://spec.graphql.org/draft/#sec-Type-Name-Introspection
@@ -71,15 +170,15 @@ function gql_name(n: string): string {
 function qualify_type_name(root_file: string, t: any, name: string): string {
   let symbol = t.getSymbol();
 
-  if(! symbol) {
+  if (!symbol) {
     try {
       symbol = t.types[0].getSymbol();
-    } catch(e) {
+    } catch {
       throw new Error(`Couldn't find symbol for type ${name}`);
     }
   }
 
-  const locations = symbol.declarations.map((d: any) => d.getSourceFile());
+  const locations = symbol.declarations.map((d: ts.Declaration) => d.getSourceFile());
   for(const f of locations) {
     const where = f.fileName;
     const short = where.replace(dirname(root_file) + '/','').replace(/\.ts$/, '');
@@ -99,13 +198,13 @@ function qualify_type_name(root_file: string, t: any, name: string): string {
   throw new Error(`Couldn't find any declarations for type ${name}`);
 }
 
-function validate_type(root_file: string, checker: ts.TypeChecker, object_names: TypeNames, schema_response: sdk.SchemaResponse, name: string, ty: any, depth: number): sdk.Type {
+function validate_type(root_file: string, checker: ts.TypeChecker, object_type_definitions: ObjectTypeDefinitions, scalar_type_definitions: ScalarTypeDefinitions, name: string, ty: any, depth: number): TypeDefinition {
   const type_str = checker.typeToString(ty);
   const type_name = ty.symbol?.escapedName || ty.intrinsicName || 'unknown_type';
   const type_name_lower: string = type_name.toLowerCase();
 
   if(depth > MAX_INFERENCE_RECURSION) {
-    error(`Schema inference validation exceeded depth ${MAX_INFERENCE_RECURSION} for type ${type_str}`);
+    throw_error(`Schema inference validation exceeded depth ${MAX_INFERENCE_RECURSION} for type ${type_str}`);
   }
 
   // PROMISE
@@ -114,66 +213,69 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_names:
   // TODO: promises should not be allowed in parameters
   if (type_name == "Promise") {
     const inner_type = ty.resolvedTypeArguments[0];
-    const inner_type_result = validate_type(root_file, checker, object_names, schema_response, name, inner_type, depth + 1);
+    const inner_type_result = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, name, inner_type, depth + 1);
     return inner_type_result;
   }
 
   // ARRAY
   if (checker.isArrayType(ty)) {
     const inner_type = ty.resolvedTypeArguments[0];
-    const inner_type_result = validate_type(root_file, checker, object_names, schema_response, `Array_of_${name}`, inner_type, depth + 1);
+    const inner_type_result = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, `Array_of_${name}`, inner_type, depth + 1);
     return { type: 'array', element_type: inner_type_result };
+  }
+
+  const not_nullable_result = unwrap_nullable_type(ty);
+  if (not_nullable_result !== null) {
+    const [not_nullable_type, null_or_undefinability] = not_nullable_result;
+    const not_nullable_type_result = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, `Array_of_${name}`, not_nullable_type, depth + 1);
+    return { type: "nullable", underlying_type: not_nullable_type_result, null_or_undefinability: null_or_undefinability }
   }
 
   // Named SCALAR
   if (scalar_mappings[type_name_lower]) {
     const type_name_gql = scalar_mappings[type_name_lower];
-    schema_response.scalar_types[type_name_gql] = no_ops;
-    return { type: 'named', name: type_name_gql };
+    scalar_type_definitions[type_name_gql] = {};
+    return { type: 'named', name: type_name_gql, kind: "scalar" };
   }
 
   // OBJECT
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/33 There should be a library function that allows us to check this case
   const info = get_object_type_info(root_file, checker, ty, name);
   if (info) {
-    const type_str_qualified = info.type_name; // lookup_type_name(root_file, checker, info, object_names, name, ty);
+    const type_str_qualified = info.type_name;
 
     // Shortcut recursion if the type has already been named
-    if(schema_response.object_types[type_str_qualified]) {
-      return { type: 'named', name: type_str_qualified };
+    if (object_type_definitions[type_str_qualified]) {
+      return { type: 'named', name: type_str_qualified, kind: "object" };
     }
 
-    schema_response.object_types[type_str_qualified] = Object(); // Break infinite recursion
-    const fields = Object.fromEntries(Array.from(info.members, ([k, field_type]) => {
-      const field_type_validated = validate_type(root_file, checker, object_names, schema_response, `${name}_field_${k}`, field_type, depth + 1);
-      return [k, { type: field_type_validated }];
-    }));
+    object_type_definitions[type_str_qualified] = { properties: [] }; // Break infinite recursion
 
-    schema_response.object_types[type_str_qualified] = { fields };
-    return { type: 'named', name: type_str_qualified}
+    const properties = Array.from(info.members, ([property_name, property_type]) => {
+      const property_type_validated = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, `${name}_field_${property_name}`, property_type, depth + 1);
+      return { property_name, type: property_type_validated };
+    });
+
+    object_type_definitions[type_str_qualified] = { properties }
+
+    return { type: 'named', name: type_str_qualified, kind: "object" }
   }
 
   // TODO: We could potentially support classes, but only as return types, not as function arguments
   if ((ty.objectFlags & ts.ObjectFlags.Class) !== 0) {
     console.error(`class types are not supported: ${name}`);
-    error('validate_type failed');
+    throw_error('validate_type failed');
   }
 
   if (ty === checker.getVoidType()) {
     console.error(`void functions are not supported: ${name}`);
-    error('validate_type failed');
+    throw_error('validate_type failed');
   }
-
-  // TODO: https://github.com/hasura/ndc-typescript-deno/issues/58 We should resolve generic type parameters somewhere
-  //
-  // else if (ty.constraint) {
-  //   return validate_type(root_file, checker, object_names, schema_response, name, ty.constraint, depth + 1)
-  // }
 
   // UNHANDLED: Assume that the type is a scalar
   console.error(`Unable to validate type of ${name}: ${type_str} (${type_name}). Assuming that it is a scalar type.`);
-  schema_response.scalar_types[name] = no_ops;
-  return { type: 'named', name };
+  scalar_type_definitions[name] = {};
+  return { type: 'named', name, kind: "scalar" };
 }
 
 /**
@@ -197,11 +299,11 @@ function pre_vendor(vendorPath: string, filename: string) {
     console.error(`Error: Got code ${code} during deno vendor operation.`)
     console.error(`stdout: ${new TextDecoder().decode(stdout)}`);
     console.error(`stderr: ${new TextDecoder().decode(stderr)}`);
-    error('pre_vendor failed');
+    throw_error('pre_vendor failed');
   }
 }
 
-function error(message: string): never {
+function throw_error(message: string): never {
   throw new Error(message);
 }
 
@@ -209,16 +311,17 @@ function error(message: string): never {
  * Logs simple listing of functions/procedures on stderr.
  *
  * @param prompt
- * @param positions
+ * @param functionDefinitions
  * @param info
  */
-function listing(prompt: string, positions: FunctionPositions, info: Array<sdk.FunctionInfo>) {
-  if(info.length > 0) {
+function listing(functionNdcKind: FunctionNdcKind, functionDefinitions: FunctionDefinitions) {
+  const functions = Object.entries(functionDefinitions).filter(([_, def]) => def.ndc_kind === functionNdcKind);
+  if (functions.length > 0) {
     console.error(``);
-    console.error(`${prompt}:`)
-    for(const f of info) {
-      const args = (positions[f.name] || []).join(', ');
-      console.error(`* ${f.name}(${args})`);
+    console.error(`${functionNdcKind}s:`)
+    for (const [function_name, function_definition] of functions) {
+      const args = function_definition.arguments.join(', ');
+      console.error(`* ${function_name}(${args})`);
     }
     console.error(``);
   }
@@ -305,7 +408,36 @@ function get_object_type_info(root_file: string, checker: ts.TypeChecker, ty: an
   return null;
 }
 
-export function programInfo(filename: string, vendorPath: string, perform_vendor: boolean): ProgramInfo {
+function unwrap_nullable_type(ty: ts.Type): [ts.Type, NullOrUndefinability] | null {
+  if (!ty.isUnion()) return null;
+
+  const isNullable = ty.types.find(is_null_type) !== undefined;
+  const isUndefined = ty.types.find(is_undefined_type) !== undefined;
+  const nullOrUndefinability =
+    isNullable
+      ? isUndefined
+        ? NullOrUndefinability.AcceptsEither
+        : NullOrUndefinability.AcceptsNullOnly
+      : isUndefined
+        ? NullOrUndefinability.AcceptsUndefinedOnly
+        : null;
+
+  const typesWithoutNullAndUndefined = ty.types
+    .filter(t => !is_null_type(t) && !is_undefined_type(t));
+
+  return typesWithoutNullAndUndefined.length === 1 && nullOrUndefinability
+    ? [typesWithoutNullAndUndefined[0], nullOrUndefinability]
+    : null;
+}
+
+function is_null_type(ty: ts.Type): boolean {
+  return (ty.flags & ts.TypeFlags.Null) !== 0;
+}
+function is_undefined_type(ty: ts.Type): boolean {
+  return (ty.flags & ts.TypeFlags.Undefined) !== 0;
+}
+
+export function inferProgramSchema(filename: string, vendorPath: string, perform_vendor: boolean): ProgramSchema {
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/27 This should have already been established upstream
   const importMapPath = `${vendorPath}/import_map.json`;
   let pathsMap: {[key: string]: Array<string>} = {};
@@ -359,7 +491,8 @@ export function programInfo(filename: string, vendorPath: string, perform_vendor
     allowImportingTsExtensions: true,
     noEmit: true,
     baseUrl: '.',
-    paths: pathsMap
+    paths: pathsMap,
+    strictNullChecks: true,
   };
 
   const host = ts.createCompilerHost(compilerOptions);
@@ -410,23 +543,15 @@ export function programInfo(filename: string, vendorPath: string, perform_vendor
     });
 
     if(fatal > 0) {
-      error(`Fatal errors: ${fatal}`);
+      throw_error(`Fatal errors: ${fatal}`);
     }
   }
 
   const checker = program.getTypeChecker();
 
-  const schema_response: sdk.SchemaResponse = {
-    scalar_types: {},
-    object_types: {},
-    collections: [],
-    functions: [],
-    procedures: [],
-  };
-
-  const object_names = [] as TypeNames;
-
-  const positions: FunctionPositions = {};
+  const object_type_definitions: ObjectTypeDefinitions = {};
+  const function_definitions: FunctionDefinitions = {};
+  const scalar_type_definitions: ScalarTypeDefinitions = {};
 
   function isExported(node: FunctionDeclaration): boolean {
     for(const mod of node.modifiers || []) {
@@ -454,7 +579,7 @@ export function programInfo(filename: string, vendorPath: string, perform_vendor
 
     const root_file = resolve(filename);
 
-    ts.forEachChild(src, (node) => {
+    ts.forEachChild(src, (node: ts.Node) => {
       if (ts.isFunctionDeclaration(node)) {
         const fn_sym = checker.getSymbolAtLocation(node.name!)!;
         const fn_name = fn_sym.escapedName;
@@ -473,70 +598,43 @@ export function programInfo(filename: string, vendorPath: string, perform_vendor
         const result_type = call.getReturnType();
         const result_type_name = `${fn_name}_output`;
 
-        const result_type_validated = validate_type(root_file, checker, object_names, schema_response, result_type_name, result_type, 0);
-        const description = fn_desc ? { description: fn_desc } : {}
+        const result_type_validated = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, result_type_name, result_type, 0);
 
-        const fn: sdk.FunctionInfo = {
-          name: node.name!.text,
-          ...description,
-          arguments: {},
-          result_type: result_type_validated,
-        };
-
-        positions[fn.name] = [];
-
-        call.parameters.forEach((param) => {
+        const function_arguments = call.parameters.map(param => {
           const param_name = param.getName();
           const param_desc = ts.displayPartsToString(param.getDocumentationComment(checker)).trim();
           const param_type = checker.getTypeOfSymbolAtLocation(param, param.valueDeclaration!);
           // TODO: https://github.com/hasura/ndc-typescript-deno/issues/34 Use the user's given type name if one exists.
           const type_name = `${fn_name}_arguments_${param_name}`;
-          const param_type_validated = validate_type(root_file, checker, object_names, schema_response, type_name, param_type, 0); // E.g. `bio_arguments_username`
-          const description = param_desc ? { description: param_desc } : {}
+          const param_type_validated = validate_type(root_file, checker, object_type_definitions, scalar_type_definitions, type_name, param_type, 0); // E.g. `bio_arguments_username`
+          const description = param_desc ?  param_desc : null
 
-          positions[fn.name].push(param_name);
-
-          // TODO: https://github.com/hasura/ndc-typescript-deno/issues/36
-          //       Creating the structure for optional types should be done by 'validate_type'.
-          //       Perhaps give an 'optional' boolean argument to 'validate_type' constructed in this way for params.
-          function optionalParameterType(): sdk.Type {
-            if(param) {
-              for(const declaration of param.getDeclarations() || []) {
-                if(isParameterDeclaration(declaration)) {
-                  if(checker.isOptionalParameter(declaration)) {
-                    return {
-                      type: 'nullable', underlying_type: param_type_validated
-                    }
-                  }
-                }
-              }
-            }
-            return param_type_validated;
-          }
-
-          fn.arguments[param_name] = {
-            ...description,
-            type: optionalParameterType(),
+          return {
+            argument_name: param_name,
+            description,
+            type: param_type_validated,
           }
         });
 
-        if(fn_pure) {
-          schema_response.functions.push(fn);
-        } else {
-          schema_response.procedures.push(fn);
-        }
+        function_definitions[node.name!.text] = {
+          ndc_kind: fn_pure ? FunctionNdcKind.Function : FunctionNdcKind.Procedure,
+          description: fn_desc ? fn_desc : null,
+          arguments: function_arguments,
+          result_type: result_type_validated
+        };
       }
     });
 
   }
 
   const result = {
-    schema: schema_response,
-    positions
+    functions: function_definitions,
+    object_types: object_type_definitions,
+    scalar_types: scalar_type_definitions,
   }
 
-  listing('Functions', result.positions, result.schema.functions)
-  listing('Procedures', result.positions, result.schema.procedures)
+  listing(FunctionNdcKind.Function, result.functions)
+  listing(FunctionNdcKind.Procedure, result.functions)
 
   return result;
 }

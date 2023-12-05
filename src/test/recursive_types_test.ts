@@ -7,52 +7,48 @@ Deno.test("Recursive Types", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/recursive.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
 
-  const program_results = infer.programInfo(program_path, vendor_path, false);
+  const program_schema = infer.inferProgramSchema(program_path, vendor_path, false);
 
-  test.assertEquals(program_results, {
-    positions: {
-      bar: [],
+  test.assertEquals(program_schema, {
+    functions: {
+      "bar": {
+        ndc_kind: infer.FunctionNdcKind.Procedure,
+        description: null,
+        arguments: [],
+        result_type: {
+          type: "named",
+          kind: "object",
+          name: "Foo"
+        }
+      }
     },
-    schema: {
-      collections: [],
-      functions: [],
-      object_types: {
-        Foo: {
-          fields: {
-            a: {
-              type: {
-                name: "Float",
+    object_types: {
+      Foo: {
+        properties: [
+          {
+            property_name: "a",
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "Float"
+            }
+          },
+          {
+            property_name: "b",
+            type: {
+              type: "array",
+              element_type: {
                 type: "named",
-              },
-            },
-            b: {
-              type: {
-                element_type: {
-                  name: "Foo",
-                  type: "named",
-                },
-                type: "array",
-              },
-            },
-          },
-        },
+                kind: "object",
+                name: "Foo"
+              }
+            }
+          }
+        ]
       },
-      procedures: [
-        {
-          arguments: {},
-          name: "bar",
-          result_type: {
-            name: "Foo",
-            type: "named",
-          },
-        },
-      ],
-      scalar_types: {
-        Float: {
-          aggregate_functions: {},
-          comparison_operators: {},
-        },
-      },
-    }
+    },
+    scalar_types: {
+      Float: {},
+    },
   });
 });
