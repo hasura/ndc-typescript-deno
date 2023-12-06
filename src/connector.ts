@@ -139,18 +139,18 @@ export function getProgramSchema(cmdObj: InferenceConfig): ProgramSchema {
  * @param payload
  * @returns the result of invocation with no wrapper
  */
-async function invoke(functions: RuntimeFunctions, function_definitions: FunctionDefinitions, object_type_definitions: ObjectTypeDefinitions, payload: Payload): Promise<unknown> {
-  const func = functions[payload.function];
-  const args = prepare_arguments(function_definitions, object_type_definitions, payload);
+async function invoke(function_name: string, args: Record<string, unknown>, functions: RuntimeFunctions, program_schema: ProgramSchema): Promise<unknown> {
+  const func = functions[function_name];
+  const prepared_args = prepare_arguments(function_name, args, program_schema.functions, program_schema.object_types);
 
   try {
-    let result = func.apply(undefined, args);
+    let result = func.apply(undefined, prepared_args);
     if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
       result = await result;
     }
     return result;
   } catch (e) {
-    throw new sdk.InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
+    throw new sdk.InternalServerError(`Error encountered when invoking function ${function_name}`, { message: e.message, stack: e.stack });
   }
 }
 
@@ -162,22 +162,22 @@ async function invoke(functions: RuntimeFunctions, function_definitions: Functio
  * @param payload
  * @returns An array of the function's arguments in the definition order
  */
-function prepare_arguments(function_definitions: FunctionDefinitions, object_type_definitions: ObjectTypeDefinitions, payload: Payload): unknown[] {
-  const function_definition = function_definitions[payload.function];
+export function prepare_arguments(function_name: string, args: Record<string, unknown>, function_definitions: FunctionDefinitions, object_type_definitions: ObjectTypeDefinitions): unknown[] {
+  const function_definition = function_definitions[function_name];
 
   if(!function_definition) {
-    throw new sdk.InternalServerError(`Couldn't find function ${payload.function} in schema.`);
+    throw new sdk.InternalServerError(`Couldn't find function ${function_name} in schema.`);
   }
 
   return function_definition.arguments
-    .map(argDef => coerce_argument_value(payload.args[argDef.argument_name], argDef.type, [argDef.argument_name], object_type_definitions));
+    .map(argDef => coerce_argument_value(args[argDef.argument_name], argDef.type, [argDef.argument_name], object_type_definitions));
 }
 
 function coerce_argument_value(value: unknown, type: TypeDefinition, value_path: string[], object_type_definitions: ObjectTypeDefinitions): unknown {
   switch (type.type) {
     case "array":
       if (!isArray(value))
-        throw new sdk.BadRequest("Unexpected value in function arguments. Expected an array.", { value_path });
+        throw new sdk.BadRequest(`Unexpected value in function arguments. Expected an array at '${value_path.join(".")}'.`);
       return value.map((element, index) => coerce_argument_value(element, type.element_type, [...value_path, `[${index}]`], object_type_definitions))
 
     case "nullable":
@@ -199,16 +199,13 @@ function coerce_argument_value(value: unknown, type: TypeDefinition, value_path:
       } else {
         const object_type_definition = object_type_definitions[type.name];
         if (!object_type_definition)
-          throw new sdk.InternalServerError(`Couldn't find object type ${type.name} in the schema`);
+          throw new sdk.InternalServerError(`Couldn't find object type '${type.name}' in the schema`);
         if (value === null || typeof value !== "object") {
-          throw new sdk.BadRequest(`Unexpected value in function arguments. Expected an object.`, { value_path });
+          throw new sdk.BadRequest(`Unexpected value in function arguments. Expected an object at '${value_path.join(".")}'.`);
         }
-        return Object.fromEntries(Object.entries(value).map(([prop_name, prop_value]) => {
-          const property_definition = object_type_definition.properties.find(def => def.property_name === prop_name);
-          if (!property_definition)
-            throw new sdk.BadRequest(`Unexpected property '${prop_name}' on object in function arguments.`, { value_path });
-
-          return [prop_name, coerce_argument_value(prop_value, property_definition.type, [...value_path, prop_name], object_type_definitions)]
+        return Object.fromEntries(object_type_definition.properties.map(property_definition => {
+          const prop_value = (value as Record<string, unknown>)[property_definition.property_name];
+          return [property_definition.property_name, coerce_argument_value(prop_value, property_definition.type, [...value_path, property_definition.property_name], object_type_definitions)]
         }));
       }
     default:
@@ -248,16 +245,12 @@ function pruneFields(func: string, fields: Struct<sdk.Field> | null | undefined,
 async function query(
   configuration: Configuration,
   state: State,
-  func: string,
+  functionName: string,
   requestArgs: Struct<unknown>,
   requestFields?: { [k: string]: sdk.Field; } | null | undefined
 ): Promise<unknown> {
-  const payload: Payload = {
-    function: func,
-    args: requestArgs
-  };
-  const result = await invoke(state.functions, configuration.programSchema.functions, configuration.programSchema.object_types, payload);
-  return pruneFields(func, requestFields, result);
+  const result = await invoke(functionName, requestArgs, state.functions, configuration.programSchema);
+  return pruneFields(functionName, requestFields, result);
 }
 
 function resolveArguments(
