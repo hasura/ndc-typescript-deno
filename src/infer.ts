@@ -132,8 +132,8 @@ function convert_function_definition_to_sdk_schema_type(function_name: string, d
       .map(arg_def =>
         [ arg_def.argument_name,
           {
-            description: definition.description ?? undefined,
-            type: convert_type_definition_to_sdk_type(arg_def.type)
+            type: convert_type_definition_to_sdk_type(arg_def.type),
+            ...(arg_def.description ? { description: arg_def.description } : {}),
           }
         ]
       );
@@ -142,7 +142,7 @@ function convert_function_definition_to_sdk_schema_type(function_name: string, d
     name: function_name,
     arguments: Object.fromEntries(args),
     result_type: convert_type_definition_to_sdk_type(definition.result_type),
-    description: definition.description ?? undefined,
+    ...(definition.description ? { description: definition.description } : {}),
   }
 }
 
