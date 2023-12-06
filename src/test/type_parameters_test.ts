@@ -1,80 +1,76 @@
 
-import * as test    from "https://deno.land/std@0.208.0/assert/mod.ts";
-import * as path    from "https://deno.land/std@0.208.0/path/mod.ts";
-import * as infer   from '../infer.ts';
+import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
+import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
+import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
-Deno.test({ name: "Type Parameters",
- ignore: false,
- fn() {
+Deno.test("Type Parameters", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/type_parameters.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
 
-  const program_results = infer.programInfo(program_path, vendor_path, false);
+  const program_schema = infer.inferProgramSchema(program_path, vendor_path, false);
 
   // TODO: Currently broken since parameters aren't normalised
 
-  test.assertEquals(program_results, {
-    positions: {
-      bar: [],
+  test.assertEquals(program_schema, {
+    functions: {
+      "bar": {
+        ndc_kind: FunctionNdcKind.Procedure,
+        description: null,
+        arguments: [],
+        result_type: {
+          name: "Bar<Foo>",
+          kind: "object",
+          type: "named",
+        }
+      }
     },
-    schema: {
-      collections: [],
-      functions: [],
-      object_types: {
-        "Bar<Foo>": {
-          fields: {
-            x: {
-              type: {
-                name: "Float",
-                type: "named",
-              },
-            },
-            y: {
-              type: {
-                name: "Foo",
-                type: "named",
-              },
-            },
+    object_types: {
+      "Bar<Foo>": {
+        properties: [
+          {
+            property_name: "x",
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "Float"
+            }
           },
-        },
-        "Foo": {
-          fields: {
-            a: {
-              type: {
-                name: "Float",
-                type: "named",
-              },
-            },
-            b: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            property_name: "y",
+            type: {
+              type: "named",
+              kind: "object",
+              name: "Foo"
+            }
           },
-        },
+        ]
       },
-      scalar_types: {
-        Float: {
-          aggregate_functions: {},
-          comparison_operators: {},
-        },
-        String: {
-          aggregate_functions: {},
-          comparison_operators: {},
-        },
-      },
-      procedures: [
-        {
-          arguments: {},
-          name: "bar",
-          result_type: {
-            name: "Bar<Foo>",
-            type: "named",
+      "Foo": {
+        properties: [
+          {
+            property_name: "a",
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "Float"
+            }
           },
-        },
-      ],
-    }
+          {
+            property_name: "b",
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "String"
+            }
+          },
+        ]
+      },
+    },
+    scalar_types: {
+      Float: {},
+      String: {},
+    },
   });
 
-}});
+});

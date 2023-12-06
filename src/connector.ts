@@ -3,15 +3,22 @@
  * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
  */
 
-import { FunctionPositions, ProgramInfo, programInfo, Struct } from "./infer.ts";
+import { FunctionDefinitions, get_ndc_schema, NullOrUndefinability, ObjectTypeDefinitions, ProgramSchema, TypeDefinition } from "./schema.ts";
+import { inferProgramSchema, Struct, } from "./infer.ts";
 import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
+import { isArray, unreachable } from "./util.ts";
 
 import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 
 export type State = {
-  functions: any
+  functions: RuntimeFunctions
+}
+
+export type RuntimeFunctions = {
+  // deno-lint-ignore ban-types
+  [function_name: string]: Function
 }
 
 export interface RawConfiguration {
@@ -56,7 +63,7 @@ export const RAW_CONFIGURATION_SCHEMA: JSONSchemaObject = {
 
 type Configuration = {
   inferenceConfig: InferenceConfig,
-  programInfo: ProgramInfo,
+  programSchema: ProgramSchema,
 }
 
 type InferenceConfig = {
@@ -75,9 +82,9 @@ export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   },
 };
 
-type Payload<X> = {
+type Payload = {
   function: string,
-  args: Struct<X>
+  args: Struct<unknown>
 }
 
 
@@ -91,7 +98,7 @@ type Payload<X> = {
  * @param cmdObj
  * @returns Schema and argument position information
  */
-export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
+export function getProgramSchema(cmdObj: InferenceConfig): ProgramSchema {
   switch(cmdObj.schemaMode) {
     /**
      * The READ option is available in case the user wants to pre-cache their schema during development.
@@ -108,15 +115,15 @@ export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
     }
     case 'INFER': {
       console.error(`Inferring schema with map location ${cmdObj.vendorDir}`);
-      const info = programInfo(cmdObj.functions, cmdObj.vendorDir, cmdObj.preVendor);
+      const programSchema = inferProgramSchema(cmdObj.functions, cmdObj.vendorDir, cmdObj.preVendor);
       const schemaLocation = cmdObj.schemaLocation;
       if(schemaLocation) {
         console.error(`Writing schema to ${cmdObj.schemaLocation}`);
-        const infoString = JSON.stringify(info);
+        const infoString = JSON.stringify(programSchema);
         // NOTE: Using sync functions should be ok since they're run on startup.
         Deno.writeTextFileSync(schemaLocation, infoString);
       }
-      return info;
+      return programSchema;
     }
     default:
       throw new Error('Invalid schema-mode. Use READ or INFER.');
@@ -129,42 +136,86 @@ export function getInfo(cmdObj: InferenceConfig): ProgramInfo {
  * This doesn't catch any exceptions.
  *
  * @param functions
- * @param positions
+ * @param function_definitions
  * @param payload
  * @returns the result of invocation with no wrapper
  */
-async function invoke(functions: any, positions: FunctionPositions, payload: Payload<unknown>): Promise<any> {
-  const ident = payload.function;
-  const func = functions[ident as any] as any;
-  const args = reposition(positions, payload);
+async function invoke(function_name: string, args: Record<string, unknown>, functions: RuntimeFunctions, program_schema: ProgramSchema): Promise<unknown> {
+  const func = functions[function_name];
+  const prepared_args = prepare_arguments(function_name, args, program_schema.functions, program_schema.object_types);
 
-  let result = func.apply(null, args);
-  if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
-    result = await result;
+  try {
+    let result = func.apply(undefined, prepared_args);
+    if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
+      result = await result;
+    }
+    return result;
+  } catch (e) {
+    throw new sdk.InternalServerError(`Error encountered when invoking function ${function_name}`, { message: e.message, stack: e.stack });
   }
-  return result;
 }
 
 /**
  * This takes argument position information and a payload of function
  * and named arguments and returns the correctly ordered arguments ready to be applied.
  *
- * @param functions
+ * @param function_definitions
  * @param payload
  * @returns An array of the function's arguments in the definition order
  */
-function reposition<X>(functions: FunctionPositions, payload: Payload<X>): Array<X> {
-  const positions = functions[payload.function];
+export function prepare_arguments(function_name: string, args: Record<string, unknown>, function_definitions: FunctionDefinitions, object_type_definitions: ObjectTypeDefinitions): unknown[] {
+  const function_definition = function_definitions[function_name];
 
-  if(!positions) {
-    throw new Error(`Couldn't find function ${payload.function} in schema.`);
+  if(!function_definition) {
+    throw new sdk.InternalServerError(`Couldn't find function ${function_name} in schema.`);
   }
 
-  return positions.map(k => payload.args[k]);
+  return function_definition.arguments
+    .map(argDef => coerce_argument_value(args[argDef.argument_name], argDef.type, [argDef.argument_name], object_type_definitions));
+}
+
+function coerce_argument_value(value: unknown, type: TypeDefinition, value_path: string[], object_type_definitions: ObjectTypeDefinitions): unknown {
+  switch (type.type) {
+    case "array":
+      if (!isArray(value))
+        throw new sdk.BadRequest(`Unexpected value in function arguments. Expected an array at '${value_path.join(".")}'.`);
+      return value.map((element, index) => coerce_argument_value(element, type.element_type, [...value_path, `[${index}]`], object_type_definitions))
+
+    case "nullable":
+      if (value === null) {
+        return type.null_or_undefinability == NullOrUndefinability.AcceptsUndefinedOnly
+          ? undefined
+          : null;
+      } else if (value === undefined) {
+        return type.null_or_undefinability == NullOrUndefinability.AcceptsNullOnly
+          ? null
+          : undefined;
+      } else {
+        return coerce_argument_value(value, type.underlying_type, value_path, object_type_definitions)
+      }
+    case "named":
+      if (type.kind === "scalar") {
+        // Scalars are currently treated as opaque values, which is a bit dodgy
+        return value;
+      } else {
+        const object_type_definition = object_type_definitions[type.name];
+        if (!object_type_definition)
+          throw new sdk.InternalServerError(`Couldn't find object type '${type.name}' in the schema`);
+        if (value === null || typeof value !== "object") {
+          throw new sdk.BadRequest(`Unexpected value in function arguments. Expected an object at '${value_path.join(".")}'.`);
+        }
+        return Object.fromEntries(object_type_definition.properties.map(property_definition => {
+          const prop_value = (value as Record<string, unknown>)[property_definition.property_name];
+          return [property_definition.property_name, coerce_argument_value(prop_value, property_definition.type, [...value_path, property_definition.property_name], object_type_definitions)]
+        }));
+      }
+    default:
+      return unreachable(type["type"]);
+  }
 }
 
 // TODO: https://github.com/hasura/ndc-typescript-deno/issues/26 Do deeper field recursion once that's available
-function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefined, result: Struct<X>): Struct<X> {
+function pruneFields(func: string, fields: Struct<sdk.Field> | null | undefined, result: unknown): unknown {
   // This seems like a bug to request {} fields when expecting a scalar response...
   // File with engine?
   if(!fields || Object.keys(fields).length == 0) {
@@ -173,12 +224,16 @@ function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefin
     return result;
   }
 
-  const response: Struct<X> = {};
+  const response: Struct<unknown> = {};
+
+  if (result === null || Array.isArray(result) || typeof result !== "object") {
+    throw new sdk.InternalServerError(`Function '${func}' did not return an object when expected to`);
+  }
 
   for(const [k,v] of Object.entries(fields)) {
     switch(v.type) {
       case 'column':
-        response[k] = result[v.column];
+        response[k] = (result as Record<string, unknown>)[v.column] ?? null; // Coalesce undefined into null to ensure we always have a value for a requested column
         break;
       default:
         console.error(`Function ${func} field of type ${v.type} is not supported.`);
@@ -191,21 +246,12 @@ function pruneFields<X>(func: string, fields: Struct<sdk.Field> | null | undefin
 async function query(
   configuration: Configuration,
   state: State,
-  func: string,
+  functionName: string,
   requestArgs: Struct<unknown>,
   requestFields?: { [k: string]: sdk.Field; } | null | undefined
-): Promise<Struct<unknown>> {
-  const payload: Payload<unknown> = {
-    function: func,
-    args: requestArgs
-  };
-  try {
-    const result = await invoke(state.functions, configuration.programInfo.positions, payload);
-    const pruned = pruneFields(func, requestFields, result);
-    return pruned;
-  } catch(e) {
-    throw new sdk.InternalServerError(`Error encountered when invoking function ${func}`, { message: e.message, stack: e.stack });
-  }
+): Promise<unknown> {
+  const result = await invoke(functionName, requestArgs, state.functions, configuration.programSchema);
+  return pruneFields(functionName, requestFields, result);
 }
 
 function resolveArguments(
@@ -274,15 +320,15 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
       schemaLocation: configuration.schemaLocation,
       vendorDir: resolve(configuration.vendor || "./vendor"),
     };
-    const programInfo = getInfo(inferenceConfig);
+    const programSchema = getProgramSchema(inferenceConfig);
     return Promise.resolve({
       inferenceConfig,
-      programInfo
+      programSchema
     });
   },
 
   get_schema(config: Configuration): Promise<sdk.SchemaResponse> {
-    return Promise.resolve(config.programInfo.schema);
+    return Promise.resolve(get_ndc_schema(config.programSchema));
   },
 
   // TODO: https://github.com/hasura/ndc-typescript-deno/issues/28 What do we want explain to do in this scenario?

@@ -4,7 +4,7 @@
 
 // NOTE: Ensure that sdk matches version in connector.ts
 import * as commander  from 'npm:commander@11.0.0';
-import { programInfo } from './infer.ts'
+import { inferProgramSchema } from './infer.ts'
 import { connector } from './connector.ts'
 import sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
 
@@ -12,7 +12,7 @@ const inferCommand = new commander.Command("infer")
   .argument('<path>', 'TypeScript source entrypoint')
   .option('-v, --vendor <path>', 'Vendor location (optional)')
   .action((entrypoint, cmdObj, _command) => {
-    const output = programInfo(entrypoint, cmdObj.vendor, cmdObj.preVendor);
+    const output = inferProgramSchema(entrypoint, cmdObj.vendor, cmdObj.preVendor);
     console.log(JSON.stringify(output));
   });
 

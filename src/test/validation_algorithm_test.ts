@@ -1,245 +1,282 @@
 
-import * as test    from "https://deno.land/std@0.208.0/assert/mod.ts";
-import * as path    from "https://deno.land/std@0.208.0/path/mod.ts";
-import * as infer   from '../infer.ts';
+import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
+import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
+import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
-Deno.test({ name: "Type Parameters",
- ignore: false,
- fn() {
+Deno.test("Validation Algorithm", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/validation_algorithm_update.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
 
-  const program_results = infer.programInfo(program_path, vendor_path, false);
+  const program_results = infer.inferProgramSchema(program_path, vendor_path, false);
 
   test.assertEquals(program_results, {
-    positions: {
-      bar: [
-        "string",
-        "aliasedString",
-        "genericScalar",
-        "array",
-        "promise",
-        "anonObj",
-        "aliasedObj",
-        "genericAliasedObj",
-        "interfce",
-        "genericInterface",
-        "aliasedIntersectionObj",
-        "anonIntersectionObj",
-        "genericIntersectionObj",
-      ],
-    },
-    schema: {
-      collections: [],
-      functions: [],
-      object_types: {
-        "GenericBar<string>": {
-          fields: {
-            data: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+    functions: {
+      "bar": {
+        ndc_kind: FunctionNdcKind.Procedure,
+        description: null,
+        arguments: [
+          {
+            argument_name: "string",
+            description: null,
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "String"
+            }
           },
-        },
-        "GenericIntersectionObject<string>": {
-          fields: {
-            data: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
-            test: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "aliasedString",
+            description: null,
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "String"
+            }
           },
-        },
-        Bar: {
-          fields: {
-            test: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "genericScalar",
+            description: null,
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "String"
+            }
           },
-        },
-        IGenericThing: {
-          fields: {
-            data: {
-              type: {
-                name: "String",
+          {
+            argument_name: "array",
+            description: null,
+            type: {
+              type: "array",
+              element_type: {
                 type: "named",
-              },
-            },
+                kind: "scalar",
+                name: "String"
+              }
+            }
           },
-        },
-        IThing: {
-          fields: {
-            prop: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "promise",
+            description: null,
+            type: {
+              type: "named",
+              kind: "scalar",
+              name: "String"
+            }
           },
-        },
-        IntersectionObject: {
-          fields: {
-            test: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
-            wow: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "anonObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "bar_arguments_anonObj"
+            }
           },
-        },
-        bar_arguments_anonIntersectionObj: {
-          fields: {
-            num: {
-              type: {
-                name: "Float",
-                type: "named",
-              },
-            },
-            test: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "aliasedObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "Bar"
+            }
           },
-        },
-        bar_arguments_anonObj: {
-          fields: {
-            a: {
-              type: {
-                name: "Float",
-                type: "named",
-              },
-            },
-            b: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "genericAliasedObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "GenericBar<string>"
+            }
           },
-        },
-      },
-      procedures: [
-        {
-          arguments: {
-            aliasedIntersectionObj: {
-              type: {
-                name: "IntersectionObject",
-                type: "named",
-              },
-            },
-            aliasedObj: {
-              type: {
-                name: "Bar",
-                type: "named",
-              },
-            },
-            aliasedString: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
-            anonIntersectionObj: {
-              type: {
-                name: "bar_arguments_anonIntersectionObj",
-                type: "named",
-              },
-            },
-            anonObj: {
-              type: {
-                name: "bar_arguments_anonObj",
-                type: "named",
-              },
-            },
-            array: {
-              type: {
-                element_type: {
-                  name: "String",
-                  type: "named",
-                },
-                type: "array",
-              },
-            },
-            genericAliasedObj: {
-              type: {
-                name: "GenericBar<string>",
-                type: "named",
-              },
-            },
-            genericInterface: {
-              type: {
-                name: "IGenericThing",
-                type: "named",
-              },
-            },
-            genericIntersectionObj: {
-              type: {
-                name: "GenericIntersectionObject<string>",
-                type: "named",
-              },
-            },
-            genericScalar: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
-            interfce: {
-              type: {
-                name: "IThing",
-                type: "named",
-              },
-            },
-            promise: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
-            string: {
-              type: {
-                name: "String",
-                type: "named",
-              },
-            },
+          {
+            argument_name: "interfce",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "IThing"
+            }
           },
-          name: "bar",
-          result_type: {
-            name: "String",
-            type: "named",
+          {
+            argument_name: "genericInterface",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "IGenericThing"
+            }
           },
-        },
-      ],
-      scalar_types: {
-        Float: {
-          aggregate_functions: {},
-          comparison_operators: {},
-        },
-        String: {
-          aggregate_functions: {},
-          comparison_operators: {},
-        },
+          {
+            argument_name: "aliasedIntersectionObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "IntersectionObject"
+            }
+          },
+          {
+            argument_name: "anonIntersectionObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "bar_arguments_anonIntersectionObj"
+            }
+          },
+          {
+            argument_name: "genericIntersectionObj",
+            description: null,
+            type: {
+              type: "named",
+              kind: "object",
+              name: "GenericIntersectionObject<string>"
+            }
+          },
+        ],
+        result_type: {
+          name: "String",
+          kind: "scalar",
+          type: "named",
+        }
       }
+    },
+    object_types: {
+      "GenericBar<string>": {
+        properties: [
+          {
+            property_name: "data",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      "GenericIntersectionObject<string>": {
+        properties: [
+          {
+            property_name: "data",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+          {
+            property_name: "test",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      Bar: {
+        properties: [
+          {
+            property_name: "test",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      IGenericThing: {
+        properties: [
+          {
+            property_name: "data",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      IThing: {
+        properties: [
+          {
+            property_name: "prop",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      IntersectionObject: {
+        properties: [
+          {
+            property_name: "wow",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+          {
+            property_name: "test",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      bar_arguments_anonIntersectionObj: {
+        properties: [
+          {
+            property_name: "num",
+            type: {
+              name: "Float",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+          {
+            property_name: "test",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+      bar_arguments_anonObj: {
+        properties: [
+          {
+            property_name: "a",
+            type: {
+              name: "Float",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+          {
+            property_name: "b",
+            type: {
+              name: "String",
+              kind: "scalar",
+              type: "named",
+            },
+          },
+        ],
+      },
+    },
+    scalar_types: {
+      Float: {},
+      String: {},
     }
   });
-}});
+});
