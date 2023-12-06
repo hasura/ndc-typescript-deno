@@ -4,7 +4,7 @@ import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
 
 // Classes are currently not supoported and should throw an error
-Deno.test("Complex Dependency", () => {
+Deno.test("Classes", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/classes.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
   test.assertThrows(() => {

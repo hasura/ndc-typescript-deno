@@ -3,9 +3,7 @@ import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
 
-Deno.test({ name: "Type Parameters",
- ignore: false,
- fn() {
+Deno.test("Type Parameters", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/type_parameters.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
 
@@ -74,4 +72,4 @@ Deno.test({ name: "Type Parameters",
     },
   });
 
-}});
+});

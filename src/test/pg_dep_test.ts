@@ -6,7 +6,7 @@ import * as infer from '../infer.ts';
 // NOTE: It would be good to have explicit timeout for this
 // See: https://github.com/denoland/deno/issues/11133
 // Test bug: https://github.com/hasura/ndc-typescript-deno/issues/45
-Deno.test("Inferred Dependency Based Result Type", () => {
+Deno.test("Postgres NPM Dependency", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/pg_dep.ts'));
   const vendor_path = path.fromFileUrl(import.meta.resolve('./vendor'));
   const program_schema = infer.inferProgramSchema(program_path, vendor_path, true);
