@@ -9,13 +9,18 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
+Support for "nullable" types, for example `string | null`, `string | undefined`, `string | null | undefined`,
+and optional object properties.
+
+PR: https://github.com/hasura/ndc-typescript-deno/pull/82
+
 ## v0.20
 
 Improved support for running the connector in Watch mode, where it will auto-restart when changes
 to the functions are made.
 
 * The Docker container is now compatible with watch mode and can be used for local development
-* README documentation about watch mode updated to indicate the need to explicitly watch the functions 
+* README documentation about watch mode updated to indicate the need to explicitly watch the functions
   folder (ie `--watch=./functions`)
 * `functions` configuration property is now required
 * Type inference is now only done at connector startup, not every time the `/schema` endpoint is called
