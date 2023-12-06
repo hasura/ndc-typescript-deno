@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 // Skipped due to NPM dependency resolution not currently being supported.
 Deno.test("External Dependencies", () => {
@@ -16,7 +17,7 @@ Deno.test("External Dependencies", () => {
     object_types: {},
     functions: {
       "test_deps": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {

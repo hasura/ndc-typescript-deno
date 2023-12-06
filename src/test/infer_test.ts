@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind, NullOrUndefinability } from "../schema.ts";
 
 Deno.test("Inference", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/program.ts'));
@@ -16,7 +17,7 @@ Deno.test("Inference", () => {
     object_types: {},
     functions: {
       "hello": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [],
         result_type: {
@@ -26,7 +27,7 @@ Deno.test("Inference", () => {
         }
       },
       "add": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {
@@ -66,7 +67,7 @@ Deno.test("Complex Inference", () => {
   test.assertEquals(program_schema, {
     functions: {
       "complex": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {
@@ -92,7 +93,7 @@ Deno.test("Complex Inference", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsUndefinedOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsUndefinedOnly,
               underlying_type: {
                 name: "String",
                 kind: "scalar",

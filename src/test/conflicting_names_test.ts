@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 Deno.test("Conflicting Type Names in Imports", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/conflicting_names.ts'));
@@ -12,7 +13,7 @@ Deno.test("Conflicting Type Names in Imports", () => {
   test.assertEquals(program_schema, {
     functions: {
       "foo": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [],
         result_type: {

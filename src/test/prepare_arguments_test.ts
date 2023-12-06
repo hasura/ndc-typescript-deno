@@ -1,6 +1,6 @@
 import * as test from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as connector from '../connector.ts';
-import { FunctionDefinitions, FunctionNdcKind, NullOrUndefinability, ObjectTypeDefinitions } from "../infer.ts";
+import { FunctionDefinitions, FunctionNdcKind, NullOrUndefinability, ObjectTypeDefinitions } from "../schema.ts";
 
 Deno.test("argument ordering", () => {
   const function_name = "test_fn"

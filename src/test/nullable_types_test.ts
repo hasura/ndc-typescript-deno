@@ -1,6 +1,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind, NullOrUndefinability } from "../schema.ts";
 
 Deno.test("Nullable Types", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/nullable_types.ts'));
@@ -25,7 +26,7 @@ Deno.test("Nullable Types", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -38,7 +39,7 @@ Deno.test("Nullable Types", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsUndefinedOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsUndefinedOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -51,7 +52,7 @@ Deno.test("Nullable Types", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsEither,
+              null_or_undefinability: NullOrUndefinability.AcceptsEither,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -73,7 +74,7 @@ Deno.test("Nullable Types", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsUndefinedOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsUndefinedOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -83,10 +84,10 @@ Deno.test("Nullable Types", () => {
           },
         ],
         description: null,
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         result_type: {
           type: "nullable",
-          null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+          null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
           underlying_type: {
             kind: "scalar",
             name: "String",
@@ -110,7 +111,7 @@ Deno.test("Nullable Types", () => {
             property_name: "nullableString",
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -122,7 +123,7 @@ Deno.test("Nullable Types", () => {
             property_name: "optionalString",
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsUndefinedOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsUndefinedOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -134,7 +135,7 @@ Deno.test("Nullable Types", () => {
             property_name: "undefinedString",
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsUndefinedOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsUndefinedOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -146,7 +147,7 @@ Deno.test("Nullable Types", () => {
             property_name: "nullOrUndefinedString",
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsEither,
+              null_or_undefinability: NullOrUndefinability.AcceptsEither,
               underlying_type: {
                 kind: "scalar",
                 name: "String",

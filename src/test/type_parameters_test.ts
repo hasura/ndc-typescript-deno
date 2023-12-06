@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 Deno.test("Type Parameters", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/type_parameters.ts'));
@@ -14,7 +15,7 @@ Deno.test("Type Parameters", () => {
   test.assertEquals(program_schema, {
     functions: {
       "bar": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [],
         result_type: {

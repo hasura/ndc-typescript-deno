@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 // NOTE: It would be good to have explicit timeout for this
 // See: https://github.com/denoland/deno/issues/11133
@@ -14,7 +15,7 @@ Deno.test("Postgres NPM Dependency", () => {
   test.assertEquals(program_schema, {
     functions: {
       "insert_user": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {
@@ -34,7 +35,7 @@ Deno.test("Postgres NPM Dependency", () => {
         }
       },
       "insert_todos": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {
@@ -63,7 +64,7 @@ Deno.test("Postgres NPM Dependency", () => {
         }
       },
       "delete_todos": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {

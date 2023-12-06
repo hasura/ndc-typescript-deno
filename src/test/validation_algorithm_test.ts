@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 Deno.test("Validation Algorithm", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/validation_algorithm_update.ts'));
@@ -12,7 +13,7 @@ Deno.test("Validation Algorithm", () => {
   test.assertEquals(program_results, {
     functions: {
       "bar": {
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         description: null,
         arguments: [
           {

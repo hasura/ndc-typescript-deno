@@ -2,6 +2,7 @@
 import * as test  from "https://deno.land/std@0.208.0/assert/mod.ts";
 import * as path  from "https://deno.land/std@0.208.0/path/mod.ts";
 import * as infer from '../infer.ts';
+import { FunctionNdcKind } from "../schema.ts";
 
 Deno.test("Inline Types", () => {
   const program_path = path.fromFileUrl(import.meta.resolve('./data/inline_types.ts'));
@@ -17,7 +18,7 @@ Deno.test("Inline Types", () => {
       },
       functions: {
         "bar": {
-          ndc_kind: infer.FunctionNdcKind.Procedure,
+          ndc_kind: FunctionNdcKind.Procedure,
           description: null,
           arguments: [
             {

@@ -3,7 +3,8 @@
  * Using https://github.com/hasura/ndc-qdrant/blob/main/src/index.ts as an example.
  */
 
-import { FunctionDefinitions, get_ndc_schema, NullOrUndefinability, ObjectTypeDefinitions, ProgramSchema, inferProgramSchema, Struct, TypeDefinition } from "./infer.ts";
+import { FunctionDefinitions, get_ndc_schema, NullOrUndefinability, ObjectTypeDefinitions, ProgramSchema, TypeDefinition } from "./schema.ts";
+import { inferProgramSchema, Struct, } from "./infer.ts";
 import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 import { isArray, unreachable } from "./util.ts";

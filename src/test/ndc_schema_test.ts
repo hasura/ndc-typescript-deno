@@ -1,6 +1,5 @@
 import * as test from "https://deno.land/std@0.208.0/assert/mod.ts";
-import * as infer from '../infer.ts';
-import { ProgramSchema } from '../infer.ts';
+import { FunctionNdcKind, NullOrUndefinability, ProgramSchema, get_ndc_schema } from "../schema.ts";
 
 Deno.test("NDC Schema Generation", () => {
   const program_schema: ProgramSchema = {
@@ -12,7 +11,7 @@ Deno.test("NDC Schema Generation", () => {
             description: null,
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -22,10 +21,10 @@ Deno.test("NDC Schema Generation", () => {
           },
         ],
         description: null,
-        ndc_kind: infer.FunctionNdcKind.Procedure,
+        ndc_kind: FunctionNdcKind.Procedure,
         result_type: {
           type: "nullable",
-          null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+          null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
           underlying_type: {
             kind: "scalar",
             name: "String",
@@ -46,7 +45,7 @@ Deno.test("NDC Schema Generation", () => {
           },
         ],
         description: null,
-        ndc_kind: infer.FunctionNdcKind.Function,
+        ndc_kind: FunctionNdcKind.Function,
         result_type: {
           type: "array",
           element_type: {
@@ -72,7 +71,7 @@ Deno.test("NDC Schema Generation", () => {
             property_name: "nullableString",
             type: {
               type: "nullable",
-              null_or_undefinability: infer.NullOrUndefinability.AcceptsNullOnly,
+              null_or_undefinability: NullOrUndefinability.AcceptsNullOnly,
               underlying_type: {
                 kind: "scalar",
                 name: "String",
@@ -89,7 +88,7 @@ Deno.test("NDC Schema Generation", () => {
     },
   };
 
-  const schema_response = infer.get_ndc_schema(program_schema)
+  const schema_response = get_ndc_schema(program_schema)
 
   test.assertEquals(schema_response, {
     collections: [],
