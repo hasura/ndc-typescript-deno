@@ -173,8 +173,8 @@ function qualify_type_name(root_file: string, t: any, name: string): string {
   if (!symbol) {
     try {
       symbol = t.types[0].getSymbol();
-    } catch {
-      throw new Error(`Couldn't find symbol for type ${name}`);
+    } catch (e) {
+      throw new Error(`Couldn't find symbol for type ${name}`, { cause: e });
     }
   }
 
@@ -224,6 +224,7 @@ function validate_type(root_file: string, checker: ts.TypeChecker, object_type_d
     return { type: 'array', element_type: inner_type_result };
   }
 
+  // NULL OR UNDEFINED TYPES (x | null, x | undefined, x | null | undefined)
   const not_nullable_result = unwrap_nullable_type(ty);
   if (not_nullable_result !== null) {
     const [not_nullable_type, null_or_undefinability] = not_nullable_result;
@@ -415,12 +416,14 @@ function unwrap_nullable_type(ty: ts.Type): [ts.Type, NullOrUndefinability] | nu
   const isUndefined = ty.types.find(is_undefined_type) !== undefined;
   const nullOrUndefinability =
     isNullable
-      ? isUndefined
-        ? NullOrUndefinability.AcceptsEither
-        : NullOrUndefinability.AcceptsNullOnly
-      : isUndefined
-        ? NullOrUndefinability.AcceptsUndefinedOnly
-        : null;
+      ? ( isUndefined
+          ? NullOrUndefinability.AcceptsEither
+          : NullOrUndefinability.AcceptsNullOnly
+        )
+      : ( isUndefined
+          ? NullOrUndefinability.AcceptsUndefinedOnly
+          : null
+        );
 
   const typesWithoutNullAndUndefined = ty.types
     .filter(t => !is_null_type(t) && !is_undefined_type(t));
