@@ -78,6 +78,7 @@ export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
     query: {
+      variables: {}
     },
   },
 };
