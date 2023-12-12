@@ -9,6 +9,8 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
+## v0.21
+
 Support for "nullable" types, for example `string | null`, `string | undefined`, `string | null | undefined`,
 and optional object properties.
 
