@@ -9,7 +9,7 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
-* Support for query variables - "ForEach"
+* Support for query variables AKA "ForEach"
 
 ## v0.21
 
