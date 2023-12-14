@@ -2,18 +2,25 @@
 
 ####
 # This script serves as the entrypoint for the Dockerfile
-# It is used both during the build phase (with PRECACHE_ONLY=true), and during the run phase.
-# This could be split into two scripts easily enough if that is required.
 ####
 
 set -e
 
-cd /functions
+mkdir -p /functions/src && cd /functions
 
 if [ ! -f ./src/index.ts ]
 then
-  echo "No /functions/src/index.ts found - Please place your functions in /functions/src"
-  exit 0
+  if [ -n "$FUNCTIONS_TAR_URL" ]
+  then
+    curl -o /tmp/functions.tar.gz "$FUNCTIONS_TAR_URL" 
+    tar -xvzf /tmp/functions.tar.gz
+    mv /tmp/functions/* /functions/src/
+    rm -r /tmp/functions
+    rm /tmp/functions.tar.gz
+  else
+    echo -e "No /functions/src/index.ts found\nPlease mount your functions onto /functions/src or provide FUNCTIONS_TAR_URL"
+    exit 0
+  fi
 fi
 
 if [ -d vendor ]
@@ -32,12 +39,6 @@ else
     /app/mod.ts infer \
       --vendor /functions/vendor \
       ./src/index.ts >schema.json
-fi
-
-if [ "$PRECACHE_ONLY" ]
-then
-  echo "Thanks for running pre-caching - Please come again soon!"
-  exit 0
 fi
 
 if [[ "$WATCH" == "1" || "$WATCH" == "true" ]]
