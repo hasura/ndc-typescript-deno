@@ -9,8 +9,7 @@ import { resolve } from "https://deno.land/std@0.208.0/path/mod.ts";
 import { JSONSchemaObject } from "npm:@json-schema-tools/meta-schema";
 import { isArray, unreachable } from "./util.ts";
 
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
-export * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
+import { sdk } from './sdk.ts';
 
 export type State = {
   functions: RuntimeFunctions

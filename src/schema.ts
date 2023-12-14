@@ -1,4 +1,4 @@
-import * as sdk from 'npm:@hasura/ndc-sdk-typescript@1.2.5';
+import { sdk } from './sdk.ts';
 import { mapObjectValues, unreachable } from "./util.ts";
 
 export type ProgramSchema = {

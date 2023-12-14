@@ -9,6 +9,12 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
+## v0.22
+
+Update TS SDK Dependency to v1.2.6.
+
+* Fixes issue with SERVICE_TOKEN check
+
 ## v0.21
 
 Support for "nullable" types, for example `string | null`, `string | undefined`, `string | null | undefined`,
