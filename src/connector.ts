@@ -78,6 +78,7 @@ export const CAPABILITIES_RESPONSE: sdk.CapabilitiesResponse = {
   versions: "^0.1.0",
   capabilities: {
     query: {
+      variables: {}
     },
   },
 };
@@ -145,9 +146,10 @@ async function invoke(function_name: string, args: Record<string, unknown>, func
   const prepared_args = prepare_arguments(function_name, args, program_schema.functions, program_schema.object_types);
 
   try {
-    let result = func.apply(undefined, prepared_args);
+    const result = func.apply(undefined, prepared_args);
+    // Resolve the result if it is a promise
     if (typeof result === "object" && 'then' in result && typeof result.then === "function") {
-      result = await result;
+      return await result;
     }
     return result;
   } catch (e) {
@@ -248,7 +250,7 @@ async function query(
   state: State,
   functionName: string,
   requestArgs: Struct<unknown>,
-  requestFields?: { [k: string]: sdk.Field; } | null | undefined
+  requestFields: { [k: string]: sdk.Field; } | null,
 ): Promise<unknown> {
   const result = await invoke(functionName, requestArgs, state.functions, configuration.programSchema);
   return pruneFields(functionName, requestFields, result);
@@ -257,13 +259,22 @@ async function query(
 function resolveArguments(
   func: string,
   requestArgs: Struct<sdk.Argument>,
+  requestVariables: { [k: string]: unknown },
 ): Struct<unknown> {
   const args = Object.fromEntries(Object.entries(requestArgs).map(([k,v], _i) => {
-    switch(v.type) {
+    const t = v.type;
+    switch(t) {
       case 'literal':
         return [k, v.value];
+      case 'variable': {
+        if(!(v.name in requestVariables)) {
+          throw new Error(`Variable ${v.name} not found for function ${func}`);
+        }
+        const value = requestVariables[v.name];
+        return [k, value];
+      }
       default:
-        throw new Error(`Function ${func} argument ${k} of type ${v.type} not supported.`);
+        return unreachable(t)
     }
   }));
   return args;
@@ -346,13 +357,17 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
     state: State,
     request: sdk.QueryRequest
   ): Promise<sdk.QueryResponse> {
-    const args = resolveArguments(request.collection, request.arguments);
-    const result = await query(configuration, state, request.collection, args, request.query.fields);
+
+    const rows = [];
+    for(const variables of request.variables ?? [{}]) {
+      const args = resolveArguments(request.collection, request.arguments, variables);
+      const result = await query(configuration, state, request.collection, args, request.query.fields ?? null);
+      rows.push({ '__value': result });
+    }
+
     return [{
       aggregates: {},
-      rows: [{
-        '__value': result
-      }]
+      rows
     }];
   },
 
@@ -365,7 +380,7 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
     for(const op of request.operations) {
       switch(op.type) {
         case 'procedure': {
-          const result = await query(configuration, state, op.name, op.arguments, op.fields);
+          const result = await query(configuration, state, op.name, op.arguments, op.fields ?? null);
           results.push({
             affected_rows: 1,
             returning: [{
