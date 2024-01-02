@@ -7,18 +7,19 @@
 set -e
 
 mkdir -p /functions/src && cd /functions
+tmpdir=$(mktemp -d)
 
 if [ ! -f ./src/index.ts ]
 then
   if [ -n "$FUNCTIONS_TAR_URL" ]
   then
-    curl -o /tmp/functions.tar.gz "$FUNCTIONS_TAR_URL" 
-    tar -xvzf /tmp/functions.tar.gz
-    mv /tmp/functions/* /functions/src/
+    curl -o /tmp/functions.tar.gz "$FUNCTIONS_TAR_URL"
+    tar -xvzf /tmp/functions.tar.gz -C "$tmpdir"
+    mv "$tmpdir"/* /
     rm -r /tmp/functions
     rm /tmp/functions.tar.gz
   else
-    echo -e "No /functions/src/index.ts found\nPlease mount your functions onto /functions/src or provide FUNCTIONS_TAR_URL"
+    echo -e "/functions/src/index.ts not found.\nPlease mount your functions onto /functions/src or provide FUNCTIONS_TAR_URL."
     exit 0
   fi
 fi
