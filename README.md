@@ -17,7 +17,6 @@ Useful Links:
 * [Deno](https://deno.com)
 * [Native Data Connector Specification](https://hasura.github.io/ndc-spec/)
 * [TypeScript NDC SDK](https://github.com/hasura/ndc-sdk-typescript/)
-* [DDN Limited Alpha Access Form](https://forms.gle/zHTrVEbsQoBK8ecr5)
 
 
 ## Overview
@@ -43,7 +42,6 @@ It is recommended that you:
 * Install the [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 * Optionally install [Deno](https://deno.com)
 * Optionally install the [VSCode Deno Extension](https://marketplace.visualstudio.com/items?itemName=denoland.vscode-deno)
-* Ensure you have access to the Hasura DDN ([Alpha Application Form](https://forms.gle/zHTrVEbsQoBK8ecr5))
 
 **The last item is currently required for access to the Hasura DDN in order to deploy and manage V3 projects.**
 
