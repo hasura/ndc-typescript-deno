@@ -9,6 +9,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
+Update TS SDK dependency to v1.2.8.
+
+* Fixed issue where query response format was incorrect when variables were used in the request
+
 ## v0.22
 
 Update TS SDK Dependency to v1.2.6.

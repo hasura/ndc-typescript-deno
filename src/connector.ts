@@ -357,17 +357,19 @@ export const connector: sdk.Connector<RawConfiguration, Configuration, State> = 
     request: sdk.QueryRequest
   ): Promise<sdk.QueryResponse> {
 
-    const rows = [];
+    const rowSets: sdk.RowSet[] = [];
     for(const variables of request.variables ?? [{}]) {
       const args = resolveArguments(request.collection, request.arguments, variables);
       const result = await query(configuration, state, request.collection, args, request.query.fields ?? null);
-      rows.push({ '__value': result });
+      rowSets.push({
+        aggregates: {},
+        rows: [
+          { '__value': result }
+        ]
+      });
     }
 
-    return [{
-      aggregates: {},
-      rows
-    }];
+    return rowSets;
   },
 
   async mutation(
