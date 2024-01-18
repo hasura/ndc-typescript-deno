@@ -11,7 +11,7 @@ Useful Links:
 * [TypeScript Deno Connector on the NDC Hub](https://hasura.io/connectors/typescript-deno)
 * [TypeScript Deno Connector on deno.com](https://deno.land/x/hasura_typescript_connector)
 * [Hasura V3 Documentation](https://hasura.io/docs/3.0)
-* [Hasura CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
+* [Hasura CLI](https://hasura.io/docs/3.0/cli/installation/)
 * [CLI Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * [Hasura VSCode Extension](https://marketplace.visualstudio.com/items?itemName=HasuraHQ.hasura)
 * [Deno](https://deno.com)
@@ -35,7 +35,7 @@ Note: The Deno runtime is used and this connector assumes that dependencies are 
 
 It is recommended that you:
 
-* Install the [Hasura3 CLI](https://github.com/hasura/v3-cli#hasura-v3-cli)
+* Install the [Hasura3 CLI](https://hasura.io/docs/3.0/cli/installation/)
 * Log in via the CLI
 * Install the [connector plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * Install [VSCode](https://code.visualstudio.com)
@@ -155,7 +155,7 @@ deno run -A --watch=./functions --check https://deno.land/x/hasura_typescript_co
 
 
 ## Local Development of your Functions (Docker)
-You can also perform local development with rapid feedback by using the Docker container instead 
+You can also perform local development with rapid feedback by using the Docker container instead
 of `deno run`. You don't need a `config.json` in this case.
 
 * Have a `./functions/` directory in your project
@@ -195,7 +195,7 @@ This means that your functions volume will have to be mounted to `/functions/src
 
 You will need:
 
-* [V3 CLI](https://github.com/hasura/v3-cli) (With Logged in Session)
+* [V3 CLI](https://hasura.io/docs/3.0/cli/installation/) (With Logged in Session)
 * [Connector Plugin](https://hasura.io/docs/latest/hasura-cli/connector-plugin/)
 * (Optionally) A value to use with `SERVICE_TOKEN_SECRET`
 * a typescript sources directory. E.g. `--volume ./my_functions_directory:/functions`
