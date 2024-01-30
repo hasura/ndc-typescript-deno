@@ -9,6 +9,10 @@ This changelog documents the changes between release versions.
 
 Changes to be included in the next upcoming release.
 
+## v0.24
+
+* Pinned the Fastify version used to avoid using the latest version which does not work with Deno
+
 ## v0.23
 
 Update TS SDK dependency to v1.2.8.
