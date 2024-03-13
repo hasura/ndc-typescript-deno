@@ -44,7 +44,7 @@ export function make_bad_password_hash(pw: string): string {
 /**
  * Returns the github bio for the userid provided
  *
- * @param username - Username of the user who's bio will be fetched.
+ * @param username Username of the user who's bio will be fetched.
  * @returns The github bio for the requested user.
  * @pure This function should only query data without making modifications
  */
